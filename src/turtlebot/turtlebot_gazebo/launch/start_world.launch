@@ -1,5 +1,6 @@
 <launch>
-  <arg name="world_file"  default="$(find turtlebot_gazebo)/worlds/empty.world"/>
+  <arg name="gazebo_world" default="empty"/>
+  <arg name="world_file"  default="$(find turtlebot_gazebo)/worlds/$(arg gazebo_world).world"/>
   <arg name="paused" default="false"/>
   <arg name="use_sim_time" default="true"/>
   <arg name="gui" default="true"/>
