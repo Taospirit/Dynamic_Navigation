@@ -7,8 +7,8 @@
       <plugin name="differential_drive_controller" filename="libgazebo_ros_diff_drive.so">
 	    <alwaysOn>true</alwaysOn>
 	    <updateRate>50</updateRate>
-	    <leftJoint>left_wheel_joint</leftJoint>
-    	    <rightJoint>right_wheel_joint</rightJoint>
+	    <leftJoint>right_wheel_joint</leftJoint>
+    	    <rightJoint>left_wheel_joint</rightJoint>
 	    <wheelSeparation>.230</wheelSeparation>
 	    <wheelDiameter>0.070</wheelDiameter>
 	    <torque>1.0</torque>
@@ -26,6 +26,23 @@
       <publishTf>1</publishTf>
 	  </plugin>
 	</gazebo>
+<!-- 	
+	  <gazebo>
+	    <plugin name="create_controller" filename="libgazebo_ros_create.so">
+	      <alwaysOn>true</alwaysOn>
+	      <node_namespace>turtlebot_node</node_namespace>
+	      <left_wheel_joint>left_wheel_joint</left_wheel_joint>
+	      <right_wheel_joint>right_wheel_joint</right_wheel_joint>
+	      <front_castor_joint>front_castor_joint</front_castor_joint>
+	      <rear_castor_joint>rear_castor_joint</rear_castor_joint>
+	      <wheel_separation>.230</wheel_separation>
+	      <wheel_diameter>0.070</wheel_diameter>
+	      <base_geom>base_footprint_collision_base_link</base_geom>
+	      <updateRate>40</updateRate>
+	      <torque>1.0</torque>
+	    </plugin>
+	  </gazebo> -->
+
   
     <gazebo reference="left_wheel_link">
       <mu1>1.0</mu1>
@@ -232,23 +249,6 @@
         </plugin>
       </sensor>
     </gazebo> -->
-
-<!-- 	
-	  <gazebo>
-	    <plugin name="create_controller" filename="libgazebo_ros_create.so">
-	      <alwaysOn>true</alwaysOn>
-	      <node_namespace>turtlebot_node</node_namespace>
-	      <left_wheel_joint>left_wheel_joint</left_wheel_joint>
-	      <right_wheel_joint>right_wheel_joint</right_wheel_joint>
-	      <front_castor_joint>front_castor_joint</front_castor_joint>
-	      <rear_castor_joint>rear_castor_joint</rear_castor_joint>
-	      <wheel_separation>.230</wheel_separation>
-	      <wheel_diameter>0.070</wheel_diameter>
-	      <base_geom>base_footprint_collision_base_link</base_geom>
-	      <updateRate>40</updateRate>
-	      <torque>1.0</torque>
-	    </plugin>
-	  </gazebo> -->
 
 	</xacro:macro>
 </robot>

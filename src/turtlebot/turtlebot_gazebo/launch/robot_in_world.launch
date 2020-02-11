@@ -3,7 +3,9 @@
   <arg name="robot" value="create" /> 
   <!-- <arg name="robot" value="kobuki" /> -->
   
-  <arg name="world" value="static_obs" />
+  <!-- <arg name="world" value="empty_goal" /> -->
+  <arg name="world" value="empty_wall" />
+  <!-- <arg name="world" value="static_obs" /> -->
   <arg name="rviz" value="false" />
   <arg name="rviz_file" value="single_turtlebot" />
 

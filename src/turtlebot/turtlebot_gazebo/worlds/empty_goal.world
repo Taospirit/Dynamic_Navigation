@@ -16,34 +16,36 @@
       <!-- <real_time_update_rate>100</real_time_update_rate> -->
       <gravity>0 0 -9.8</gravity>
     </physics>
-		<model name='agent_point_goal'>
-			<pose>10 10 0.5 0 0 0</pose>
-			<link name='link'>
-				<inertial>
-					<mass>1</mass>
-				</inertial>
-				<visual name='visual'>
-					<geometry>
-						<cylinder>
-								<radius>0.5</radius>
-								<length>1.0</length>
-						</cylinder>
-					</geometry>
-					<material>
-						<script>
-							<uri>file://media/materials/scripts/gazebo.material</uri>
-							<name>Gazebo/Green</name>
-						</script>
-					</material>
-				</visual>
-				<velocity_decay>
-					<linear>0</linear>
-					<angular>0</angular>
-				</velocity_decay>
-				<self_collide>0</self_collide>
-				<kinematic>0</kinematic>
-				<gravity>0</gravity>
-			</link>
-		</model>
+	<model name='agent_point_goal'>
+		<pose>10 10 0.5 0 0 0</pose>
+		<link name='link'>
+			<inertial>
+				<mass>1</mass>
+			</inertial>
+			<visual name='visual'>
+				<geometry>
+					<cylinder>
+							<radius>0.5</radius>
+							<length>1.0</length>
+					</cylinder>
+				</geometry>
+				<material>
+					<script>
+						<uri>file://media/materials/scripts/gazebo.material</uri>
+						<name>Gazebo/Green</name>
+					</script>
+				</material>
+			</visual>
+			<velocity_decay>
+				<linear>0</linear>
+				<angular>0</angular>
+			</velocity_decay>
+			<self_collide>0</self_collide>
+			<kinematic>0</kinematic>
+			<gravity>0</gravity>
+		</link>
+	</model>
+	
+    
   </world>
 </sdf>

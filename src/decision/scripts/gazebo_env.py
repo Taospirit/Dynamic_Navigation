@@ -38,18 +38,20 @@ class gazebo_env():
         self.gazebo_obs_states = [{'x':0, 'y':0}]
 
         self.bridge = CvBridge()
-        self.image_raw, self.laser_raw = [], []
+        self.rgb_image_raw, self.laser_scan_raw = None, None
         self.image_data_set, self.laser_data_set = [], []
         
         self.laser_clip_dist = 5.0
         self.dist_goal_arrive = 1.0
-        self.dist_obs_safe = 1.2
+        self.dist_obs_safe = 1.0
+        self.dist_laser_min = 0.5
         self.laser_size = 360
         # self.laser_clip = 5
         self.img_size = 80
 
         self.info = 0
         self.done = False
+        self.odom = None
 
         self.actions = [[0.5, 0.5], [0.5, 0.2], [0.5, 0.0],
                         [0.5, -0.2], [0.5, -0.5], [0.2, 0.5],
@@ -62,7 +64,6 @@ class gazebo_env():
         self.num_sikp_frame = 2
         self.num_stack_frame = 4
         self.store_data_size = self.num_sikp_frame * self.num_stack_frame
-
 
         self.euclidean_distance = lambda p1, p2: math.hypot(p1['x'] - p2['x'], p1['y'] - p2['y'])
         self.goal_dist_last, self.goal_dist = 0, 0
@@ -80,10 +81,11 @@ class gazebo_env():
         gazebo_set_topic = '/gazebo/set_model_state'
         odom_topic = '/odom'
 
-        rospy.Subscriber(image_topic, Image, self._image_callback)
-        rospy.Subscriber(laser_topic, LaserScan, self._laser_callback)
-        rospy.Subscriber(gazebo_topic, ModelStates, self._gazebo_states_callback, queue_size=1)
+        self._check_all_sensors_ready(odom_topic, laser_topic, image_topic, gazebo_topic)
         rospy.Subscriber(odom_topic, Odometry, self._odom_callback)
+        rospy.Subscriber(laser_topic, LaserScan, self._laser_callback)
+        rospy.Subscriber(image_topic, Image, self._image_callback)
+        rospy.Subscriber(gazebo_topic, ModelStates, self._gazebo_states_callback, queue_size=1)
         self.pub_agent = rospy.Publisher(agent_pub_topic, Twist, queue_size=1)
         self.pub_state = rospy.Publisher(gazebo_set_topic, ModelState, queue_size=1)
 
@@ -92,7 +94,6 @@ class gazebo_env():
         # self.cmd_vel.angular.z = 0
         self.cmd_vel_last = {'v':0, 'w':0}
         self.pose_msg = ModelState()
-        # self.pose_msg.model_name = self.agent_name
 
         self.action = [0, 0] # init action
         self.action_done = False
@@ -107,33 +108,86 @@ class gazebo_env():
         while not rospy.is_shutdown():
             rospy.spin()
 
-    #region ros_callback
-    def _image_callback(self, data):
-        try:
-            self.image_raw = self.bridge.imgmsg_to_cv2(data)
-            img_data = cv2.resize(self.image_raw, (self.img_size, self.img_size)) # 80x80x3
-            img_data = cv2.cvtColor(img_data, cv2.COLOR_RGB2GRAY)
-            img_data = np.reshape(img_data, (self.img_size, self.img_size))
-            self.image_data_set.append(img_data)
+    #region check_topic
+    def _check_all_sensors_ready(self, odom, scan, image, gazebo):
+        rospy.logdebug('START ALL TOPIC READY')
+        self._check_odom_ready(odom, 5)
+        self._check_laser_ready(scan, 5)
+        self._check_rgb_image_raw(image, 5)
+        self._check_gazebo_state_info(gazebo, 5)
+        rospy.logdebug('ALL TOPIC READY!')
 
-            if len(self.image_data_set) > self.store_data_size: del self.image_data_set[0]
+    def _check_odom_ready(self, topic, time_out):
+        self.odom = None
+        rospy.logdebug("Waiting for {} to be READY...".format(topic))
+        while self.odom is None and not rospy.is_shutdown():
+            try:
+                self.odom = rospy.wait_for_message(topic, Odometry, timeout=time_out)
+                rospy.logdebug("Current {} READY=>".format(topic))
+            except:
+                rospy.logerr("Current {} not ready yet, retrying...".format(topic))
+        return self.odom
 
-        except CvBridgeError as e:
-            print (e)
+    def _check_laser_ready(self, topic, time_out):
+        self.laser_scan_raw = None
+        rospy.logdebug("Waiting for {} to be READY...".format(topic))
+        while self.laser_scan_raw is None and not rospy.is_shutdown():
+            try:
+                self.laser_scan_raw = rospy.wait_for_message(topic, LaserScan, timeout=time_out)
+                rospy.logdebug("Current {} READY".format(topic))
+            except:
+                rospy.logerr("Current {} not ready yet, retrying...".format(topic))
+        return self.laser_scan_raw
+
+    def _check_rgb_image_raw(self, topic, time_out):
+        self.rgb_image_raw = None
+        rospy.logdebug("Waiting for {} to be READY...".format(topic))
+        while self.rgb_image_raw is None and not rospy.is_shutdown():
+            try:
+                self.rgb_image_raw = rospy.wait_for_message(topic, Image, timeout=time_out)
+                rospy.logdebug("Current {} READY".format(topic))
+            except:
+                rospy.logerr("Current {} not ready yet, retrying...".format(topic))
+        return self.rgb_image_raw
+
+    def _check_gazebo_state_info(self, topic, time_out):
+        self.gazebo_state_info = None
+        rospy.logdebug("Waiting for {} to be READY...".format(topic))
+        while self.gazebo_state_info is None and not rospy.is_shutdown():
+            try:
+                self.gazebo_state_info = rospy.wait_for_message(topic, ModelStates, timeout=time_out)
+                rospy.logdebug("Current {} READY".format(topic))
+            except:
+                rospy.logerr("Current {} not ready yet, retrying...".format(topic))
+        return self.gazebo_state_info
+    #endregion
+
+
+    #region topic_callback
+    def _odom_callback(self, data):
+        self.odom = data
 
     def _laser_callback(self, data):
-        # sample_size:=720 update_rate:=50
-        # min_angle:=-2.35619 max_angle:=2.35619 
-        # min_range:=0.1 max_range:=30.0
-        # range_min = 0.1 range_max = 10.0 meters
-        self.laser_raw = data.ranges
-        laser_clip = np.clip(self.laser_raw, 0, self.laser_clip_dist) / self.laser_clip_dist # normalization laser data
+        self.laser_scan_raw = data.ranges
+        laser_clip = np.clip(self.laser_scan_raw, 0, self.laser_clip_dist) / self.laser_clip_dist # normalization laser data
         laser_data = [(laser_clip[i] + laser_clip[i+1]) / 2 for i in range(0, len(laser_clip), 2)]    
         self.laser_data_set.append(laser_data)
 
-        if len(self.laser_data_set) > self.store_data_size: del self.laser_data_set[0]
+        if len(self.laser_data_set) > self.store_data_size: 
+            del self.laser_data_set[0]
+
+    def _image_callback(self, data):
+        self.rgb_image_raw = self.bridge.imgmsg_to_cv2(data)
+        img_data = cv2.resize(self.rgb_image_raw, (self.img_size, self.img_size)) # 80x80x3
+        img_data = cv2.cvtColor(img_data, cv2.COLOR_RGB2GRAY)
+        img_data = np.reshape(img_data, (self.img_size, self.img_size))
+        self.image_data_set.append(img_data)
+
+        if len(self.image_data_set) > self.store_data_size: 
+            del self.image_data_set[0]
 
     def _gazebo_states_callback(self, data):
+        self.gazebo_state_info = data
         self.gazebo_obs_states = [{'x':0, 'y':0} for name in data.name if 'obs' in name]
 
         for i in range(len(data.name)):
@@ -156,10 +210,8 @@ class gazebo_env():
         #     print ('index {}, x={:.2f}, y={:.2f}'.format(self.gazebo_obs_states.index(item), item['x'], item['y']))
         # print(self.agent_goal)
         # print(self.agent_position)
-
-    def _odom_callback(self, data):
-        self.odom = data
     #endregion
+
 
     #region get_env_info
     def _get_state(self):# sensor data collection
@@ -186,55 +238,73 @@ class gazebo_env():
         
         return state_stack
 
-    def _get_reward(self, dist_rate=2, cmd_rate=0.1):
+    def _get_reward(self):
         reward = 0
-        # print (type(self.cmd_vel_last['v']), type(self.cmd_vel.linear.x))
-        cmd_vel_reward = abs(self.cmd_vel_last['v'] - self.cmd_vel.linear.x) + abs(self.cmd_vel_last['w'] - self.cmd_vel.angular.z)
-        reward += -cmd_rate * cmd_vel_reward
-        # delta_dist = 0 if self.goal_dist_last == 0 else self.goal_dist_last - self.goal_dist
-        delta_dist = self.goal_dist_last - self.goal_dist if self.goal_dist_last != 0 else 0
-        reward += dist_rate * delta_dist
-        # print ('goal_dist: {:.3f}, goal_dist_last: {:.3f}'.format(self.goal_dist, self.goal_dist_last))
-        # print ('delta_dist: {:.3f}'.format(delta_dist))
-        # print ('cmd_vel_change: {:.3f} / '.format(cmd_vel_reward))
+        reward += self.reward_cmd_vel_change()
+        reward += self.reward_close_to_goal()
 
         if self.info == 1: # coll
             reward += self.reward_near_obs
         if self.info == 2: # arrive at goal
             reward += self.reward_near_goal
-        # print ('cal_reward: {}'.format(delta_dist*dist_rate - cmd_vel_reward*cmd_rate))
         return reward
 
-    def _get_info(self):
-        self.info = 0
-        # print ('goal_dist from _get_info(): {:.3f}'.format(self.goal_dist))
-        if self.goal_dist < self.dist_goal_arrive:
-            print ('=====!!!agent get goal at {:.2f}!!!====='.format(self.goal_dist))
-            self.info = 2
-            return self.info
-        # min_dist = 1000
-        for obs in self.gazebo_obs_states:
-            obs_dist = self.euclidean_distance(self.agent_position, obs) 
-            # if obs_dist < min_dist:
-            #     min_dist = obs_dist
-            if obs_dist < self.dist_obs_safe:
-                print ('----!!!agent collision with the obs at {:.2f}!!!----'.format(obs_dist))
-                # print ('obs is ', obs)
-                # print ('index is ', self.gazebo_obs_states.index(obs))
-                self.info = 1
-        # print ('obs_min_dist {:.3f}'.format(min_dist))
-        # print ('goal_dist {:.3f}'.format(self.goal_dist))
-        return self.info
+    def reward_cmd_vel_change(self, rate=-0.1):
+        # print (type(self.cmd_vel_last['v']), type(self.cmd_vel.linear.x))
+        cmd_vel_reward = abs(self.cmd_vel_last['v'] - self.cmd_vel.linear.x) + abs(self.cmd_vel_last['w'] - self.cmd_vel.angular.z)
+        # print ('cmd_vel_change: {:.3f} / '.format(cmd_vel_reward))
+        return rate * cmd_vel_reward
+        
+    def reward_close_to_goal(self, rate=2):
+        delta_dist = self.goal_dist_last - self.goal_dist if self.goal_dist_last != 0 else 0
+        # print ('goal_dist: {:.3f}, goal_dist_last: {:.3f}'.format(self.goal_dist, self.goal_dist_last))
+        # print ('delta_dist: {:.3f}'.format(delta_dist))
+        return rate * delta_dist
 
     def _get_done(self):# arrived or collsiped or time_out
         self.done = False
-        if self.info == 1 or self.info == 2: self.done = True
+        if self.info == 1 or self.info == 2: 
+            self.done = True
+        print ('----done is {}'.format(self.done))
         return self.done
+
+    def _get_info(self):
+        self._set_info(0)
+        self.check_near_goal(self.dist_goal_arrive)
+        self.check_near_obs(self.dist_obs_safe, self.dist_laser_min, 37)
+        print ('----info is {}'.format(self.info))
+        return self.info
+
+    def check_near_goal(self, min_dist):
+        if self.goal_dist < min_dist:
+            print ('=====!!!agent get goal at {:.2f}!!!====='.format(self.goal_dist))
+            return self._set_info(2)
+       
+    def check_near_obs(self, min_dist, laser_min_dist, scan_num):
+        for obs in self.gazebo_obs_states:
+            obs_dist = self.euclidean_distance(self.agent_position, obs) 
+            if obs_dist < min_dist:
+                print ('----!!!agent near the obs at {:.2f}!!!----'.format(obs_dist))
+                return self._set_info(1)
+                
+        laser_count, laser_min = 0, 1000
+        for r in self.laser_scan_raw:
+            if r < laser_min_dist:
+                laser_count += 1
+            if r < laser_min:
+                laser_min = r
+
+        if laser_count > scan_num:
+            print ('----!!!laser too close to the obs for {:.2f}, count {}!!!-----'.format(laser_min, laser_count))
+            return self._set_info(1)
+
+    def _set_info(self, num):
+        self.info = num
     #endregion
 
     def reset(self): # init state and env
-        print ('----reset_env-----')
-        self.pose_msg.model_name = 'agent'
+        print ('=============reset_env==============')
+        self.pose_msg.model_name = self.agent_name
         self.pose_msg.pose.position.x = 0
         self.pose_msg.pose.position.y = 0
         self.pub_state.publish(self.pose_msg)
@@ -249,7 +319,7 @@ class gazebo_env():
         self.cmd_vel.angular.z = tele_input[-1] if tele_input else self.actions[action_index][1]
 
         self.pub_agent.publish(self.cmd_vel)
-        self.wait_until_twist_achieved(self.cmd_vel)
+        # self.wait_until_twist_achieved(self.cmd_vel)
         self.action_count += 1
         
         start = time.time()
@@ -259,7 +329,7 @@ class gazebo_env():
         #XXX: to be tested
         during = 0.2
         # print ('wait for {} seconds'.format(during))
-        # time.sleep(during)
+        time.sleep(during)
 
         info = self._get_info()
         done = self._get_done()
@@ -273,7 +343,7 @@ class gazebo_env():
 
         return state_, reward, done, info
 
-    def wait_until_twist_achieved(self, cmd_vel_value, epsilon=0.2):
+    def wait_until_twist_achieved(self, cmd_vel_value, epsilon=0.15):
         linear_speed = cmd_vel_value.linear.x
         angular_speed = cmd_vel_value.angular.z
 
@@ -289,26 +359,15 @@ class gazebo_env():
             odom_linear_vel = current_odometry.twist.twist.linear.x
             odom_angular_vel = current_odometry.twist.twist.angular.z
             # rospy.loginfo()
-            print ('Current is {:.3f}\{:.3f}, goal is {:.3f}\{:.3f}'.format(odom_linear_vel, odom_angular_vel, linear_speed, angular_speed))
+            print ('Current is {:.2f}\{:.2f}, goal is {:.2f}\{:.2f}'.format(odom_linear_vel, odom_angular_vel, linear_speed, angular_speed))
             linear_vel_are_close = (odom_linear_vel <= linear_speed_plus) and (odom_linear_vel > linear_speed_minus)
             angular_vel_are_close = (odom_angular_vel <= angular_speed_plus) and (odom_angular_vel > angular_speed_minus)
 
             if linear_vel_are_close and angular_vel_are_close:
-                rospy.loginfo('Have achieve twist speed')
+                print ('Achieved speed {:.2f}/{:.2f}, goal is {:.2f}/{:.2f}'.format(odom_linear_vel, odom_angular_vel, linear_speed, angular_speed))
+                # rospy.loginfo('Have achieve twist speed')
                 break
 
-    def _check_odom_ready(self):
-        self.odom = None
-        # rospy.logdebug("Waiting for /odom to be READY...")
-        while self.odom is None and not rospy.is_shutdown():
-            try:
-                self.odom = rospy.wait_for_message("/odom", Odometry, timeout=5.0)
-                rospy.logdebug("Current /odom READY=>")
-
-            except:
-                rospy.logerr("Current /odom not ready yet, retrying for getting odom")
-
-        return self.odom
 
     def get_odom(self):
         return self.odom
@@ -352,10 +411,11 @@ if __name__ == "__main__":
     # rospy.spin()
 
     #======test reward=======#
-    move = {'w': [1, 0, 0, 0],
-            'a': [0, 0, 0, 1],
-            's': [-1, 0, 0, 0],
-            'd': [0, 0, 0, -1]}
+    speed = 0.3
+    move = {'w': [speed, 0, 0, 0],
+            'a': [0, 0, 0, speed],
+            's': [-speed, 0, 0, 0],
+            'd': [0, 0, 0, -speed]}
     r_list = []
     action_n = 0
     while not rospy.is_shutdown():
@@ -366,7 +426,7 @@ if __name__ == "__main__":
             state_, reward, done, info = env.step(0, move[key])
             action_n += 1
             r_list.append(reward)
-            print ('reward {:.3f}, info {}'.format(reward, info))
+            # print ('reward {:.3f}, info {}'.format(reward, info))
 
             if done:
                 r = get_totoal_reward(r_list, 0.9)
@@ -375,6 +435,15 @@ if __name__ == "__main__":
                 action_n = 0
 
         else:
+            print ('!!!stop move!!!')
             env.step(0, [0, 0])
+
+    #====== test odom =======#
+    # while not rospy.is_shutdown():
+    #     env._check_odom_ready()
+    #     odom = env.get_odom()
+    #     linear_vel = odom.twist.twist.linear.x
+    #     angular_vel = odom.twist.twist.angular.z
+    #     print ('linear_vel is {:.2f}, angular_vel is {:.2f}'.format(linear_vel, angular_vel))
 
     rospy.spin()
