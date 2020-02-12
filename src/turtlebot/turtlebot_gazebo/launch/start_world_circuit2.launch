@@ -1,5 +1,5 @@
 <launch>
-  <arg name="world_file"  default="$(find turtlebot_gazebo)/worlds/circuit2.world"/>
+  <arg name="world_file"  default="$(find turtlebot_gazebo)/worlds/origin/circuit2.world"/>
   <arg name="paused" default="false"/>
   <arg name="use_sim_time" default="true"/>
   <arg name="gui" default="true"/>

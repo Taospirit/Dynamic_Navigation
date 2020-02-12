@@ -41,33 +41,6 @@ class gazebo_env():
         self.bridge = CvBridge()
         self.odom, self.rgb_image_raw, self.laser_scan_raw = None, None, None
         self.image_data_set, self.laser_data_set = [], []
-        
-        self.laser_sacn_clip = rospy.get_param("/dist/laser_sacn_clip")
-        self.dist_near_goal = rospy.get_param("/dist/near_goal")
-        self.dist_near_obs = rospy.get_param("/dist/near_obs")
-        self.dist_min_scan = rospy.get_param("/dist/min_scan")
-
-        self.laser_size = rospy.get_param("/params/laser_size")
-        self.img_size = rospy.get_param("/params/img_size")
-
-        self.num_sikp_frame = rospy.get_param("/params/num_sikp_frame")
-        self.num_stack_frame = rospy.get_param("/params/num_stack_frame")
-        self.reward_near_goal = rospy.get_param("/params/reward_near_goal")
-        self.reward_near_obs = rospy.get_param("/params/reward_near_obs")
-
-        # self.laser_sacn_clip = 5.0
-        # self.dist_near_goal = 1.0
-        # self.dist_near_obs = 0.7
-        # self.dist_min_scan = 0.3
-        
-        # self.laser_size = 360
-        # self.img_size = 80
-        
-        # self.reward_near_goal = 1000
-        # self.reward_near_obs = -10
-        # self.num_sikp_frame = 2
-        # self.num_stack_frame = 4
-        
         self.info = 0
         self.done = False
 
@@ -76,25 +49,28 @@ class gazebo_env():
                         [0.2, 0.0], [0.2, -0.5], [0.0, -0.5],
                         [0.0, 0.0], [0.0, 0.5]]
         self.n_actions = len(self.actions)
-        self.store_data_size = self.num_sikp_frame * self.num_stack_frame
-
-        self.euclidean_distance = lambda p1, p2: math.hypot(p1['x'] - p2['x'], p1['y'] - p2['y'])
         self.goal_dist_last, self.goal_dist = 0, 0
-
-        # image_topic = '/' + self.agent_name + '/front/left/image_raw'
+        self.euclidean_distance = lambda p1, p2: math.hypot(p1['x'] - p2['x'], p1['y'] - p2['y'])
         
+        self.laser_sacn_clip = rospy.get_param("/dist/laser_sacn_clip")
+        self.dist_near_goal = rospy.get_param("/dist/near_goal")
+        self.dist_near_obs = rospy.get_param("/dist/near_obs")
+        self.dist_min_scan = rospy.get_param("/dist/min_scan")
 
-        # laser_ = '/' + self.agent_name + '/front/scan'
+        self.laser_size = rospy.get_param("/params/laser_size")
+        self.img_size = rospy.get_param("/params/img_size")
+        self.num_sikp_frame = rospy.get_param("/params/num_sikp_frame")
+        self.num_stack_frame = rospy.get_param("/params/num_stack_frame")
+        self.reward_near_goal = rospy.get_param("/params/reward_near_goal")
+        self.reward_near_obs = rospy.get_param("/params/reward_near_obs")
+        # self.store_data_size = self.num_sikp_frame * self.num_stack_frame
+
         odom_ = rospy.get_param('/topics/odom')
         laser_ = rospy.get_param('/topics/laser_scan')
         agent_cmd_ = rospy.get_param('/topics/agent_cmd')
         gazebo_states_ = rospy.get_param('/topics/gazebo_states')
         rgb_image_ = rospy.get_param('/topics/rgb_image')
         gazebo_set_ = rospy.get_param('/topics/gazebo_set')
-        # agent_cmd_ = '/agent/jackal_velocity_controller/cmd_vel'
-
-        # gazebo_states_ = '/gazebo/model_states'
-        # gazebo_set_topic = '/gazebo/set_model_state'
 
         self._check_all_sensors_ready(odom_, laser_, rgb_image_, gazebo_states_)
         rospy.Subscriber(odom_, Odometry, self._odom_callback)
@@ -188,8 +164,8 @@ class gazebo_env():
         laser_data = [(laser_clip[i] + laser_clip[i+1]) / 2 for i in range(0, len(laser_clip), 2)]    
         self.laser_data_set.append(laser_data)
 
-        if len(self.laser_data_set) > self.store_data_size: 
-            del self.laser_data_set[0]
+        if len(self.laser_data_set) > self.num_sikp_frame * self.num_stack_frame: 
+            del self.laser_data_set[0] 
 
     def _image_callback(self, data):
         self.rgb_image_raw = self.bridge.imgmsg_to_cv2(data)
@@ -198,7 +174,7 @@ class gazebo_env():
         img_data = np.reshape(img_data, (self.img_size, self.img_size))
         self.image_data_set.append(img_data)
 
-        if len(self.image_data_set) > self.store_data_size: 
+        if len(self.image_data_set) > self.num_sikp_frame * self.num_stack_frame: 
             del self.image_data_set[0]
 
     def _gazebo_states_callback(self, data):
@@ -280,14 +256,14 @@ class gazebo_env():
         self.done = False
         if self.info == 1 or self.info == 2: 
             self.done = True
-        print ('----done is {}'.format(self.done))
+        # print ('----done is {}'.format(self.done))
         return self.done
 
     def _get_info(self):
         self._set_info(0)
         self.check_near_goal(self.dist_near_goal)
         self.check_near_obs(self.dist_near_obs, self.dist_min_scan, 100)
-        print ('----info is {}'.format(self.info))
+        # print ('----info is {}'.format(self.info))
         return self.info
 
     def check_near_goal(self, dist_min):
@@ -325,6 +301,8 @@ class gazebo_env():
         self.pose_msg.model_name = self.agent_name
         self.pose_msg.pose.position.x = 0
         self.pose_msg.pose.position.y = 0
+        self.pose_msg.twist.linear.x = 0
+        self.pose_msg.twist.angular.z = 0
         self.pub_state.publish(self.pose_msg)
         self.action_count = 0
         # init state
@@ -335,7 +313,7 @@ class gazebo_env():
         # rate = rospy.Rate(1)
         self.cmd_vel.linear.x = tele_input[0] if tele_input else self.actions[action_index][0]
         self.cmd_vel.angular.z = tele_input[-1] if tele_input else self.actions[action_index][1]
-
+        print ('set linear vel {}, angular vel {}, index {}'.format(self.cmd_vel.linear.x, self.cmd_vel.angular.z, action_index))
         self.pub_agent.publish(self.cmd_vel)
         # self.wait_until_twist_achieved(self.cmd_vel)
         self.action_count += 1
@@ -386,9 +364,13 @@ class gazebo_env():
                 # rospy.loginfo('Have achieve twist speed')
                 break
 
-
     def get_odom(self):
         return self.odom
+
+    def env_destory(self):
+        self.cmd_vel.linear.x = 0
+        self.cmd_vel.angular.z = 0
+        self.pub_agent.publish(self.cmd_vel)
 
 
 def get_key():
@@ -430,16 +412,15 @@ if __name__ == "__main__":
 
     #======test reward=======#
     speed = 0.1
-    move = {'w': [speed, 0, 0, 0],
-            'a': [0, 0, 0, speed],
-            's': [-speed, 0, 0, 0],
-            'd': [0, 0, 0, -speed]}
+    move = {'w': [speed, 0],
+            'a': [0, speed],
+            's': [-speed, 0],
+            'd': [0, -speed]}
     r_list = []
     action_n = 0
     while not rospy.is_shutdown():
         print ('===test reward, wait for tele_input===')
         key = get_key()
-
         if key in move.keys():
             state_, reward, done, info = env.step(0, move[key])
             action_n += 1

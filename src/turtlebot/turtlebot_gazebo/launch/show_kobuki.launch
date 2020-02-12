@@ -1,5 +1,5 @@
 <launch>
-  <arg name="base"      value="kobuki"/> <!-- kobuki, create, roomba -->
+  <arg name="base"      value="kobuki"/> <!-- kobuki, create -->
   <arg name="stacks"    value="hexagons"/>  <!-- hexagons, circles -->
   <arg name="3d_sensor" value="asus_xtion_pro"/>  <!-- kinect, asus_xtion_pro -->
   

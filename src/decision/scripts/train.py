@@ -1,5 +1,6 @@
 import rospy
 import os
+import time
 # import sys
 # sys.path.append('../')
 from gazebo_env import gazebo_env
@@ -13,12 +14,17 @@ write_file_name = '/data_collection/dqn_no_obs_2'
 def train():
     step = 0
     for episode in range(num_episode):
+        if rospy.is_shutdown():
+            rospy.loginfo('BREAK LEARNING!')
+            env.step(-1, [0, 0])
+            break
         # initial observation
         state = env.reset()
         # for n_action in range(num_action):
         action_n = 0
         reward_list = []
-        while True:
+ 
+        while not rospy.is_shutdown():
             # action_n = 0
             # agent choose action by DQN law
             action = agent.choose_action(state)
@@ -30,7 +36,6 @@ def train():
             if (step > 2000) and (step % 5 == 0):
                 agent.learn()
                 
-            # agent.learn()
             # swap state
             state = state_
             # break while loop when end of this episode
@@ -39,7 +44,7 @@ def train():
             reward_list.append(reward)
             if done or action_n > num_action - 1:
                 total_reward = get_total_reward(reward_list, gamma)
-                data = 'ep {}, a_n {}, epsilon {:.3f}, total_reward {}, step {}'.format(episode, action_n, agent.epsilon, total_reward, step)
+                data = 'ep {}, a_n {}, epsilon {:.3f}, total_reward {:.2f}, step {}'.format(episode, action_n, agent.epsilon, total_reward, step)
                 print (data)
                 # write_data(write_file_name, data)
                 break
@@ -47,7 +52,7 @@ def train():
     # end of game
     # print('game over')
     # env.destroy()
-    print ('======learn_over======')
+    rospy.loginfo('LEARNING OVER~')
 
 def get_total_reward(r_l, g):
     if len(r_l) == 1:
