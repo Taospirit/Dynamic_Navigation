@@ -592,7 +592,7 @@
   </model>
 
 	<model name='obs0'>
-      <pose frame=''>6.31305 -0.23213 0.5 0 -0 0</pose>
+      <pose frame=''>6.0 0 0.5 0 -0 0</pose>
       <static>1</static>
       <link name='link'>
         <inertial>

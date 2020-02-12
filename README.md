@@ -4,8 +4,7 @@ A Gazebo simulation for robot navigation in dynamics via deep reinforcement lear
 ### Dependencies
 - Ubuntu 16.04
 - ROS-kinetic
-- Gazebo 9 (with actor suport)
-- turtlebot2
+- Gazebo 8 (with actor suport)
 
 ### Build
 

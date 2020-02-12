@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
-    <arg name="robot" value="create" />
+    <arg name="gazebo_file" value="robot_in_world" />
+    <arg name="run_file" value="gazebo_env" />
     <rosparam command="load" file="$(find decision)/config/turtlebot_params.yaml" />
 
-    <include file="$(find turtlebot_gazebo)/launch/show_$(arg robot).launch">
+    <!-- <include file="$(find turtlebot_gazebo)/launch/$(arg gazebo_file).launch" /> -->
     
-    <node pkg="decision" name="decision" type="train.py" output="screen"/>
+    <node pkg="decision" name="decision" type="$(arg run_file).py" output="screen"/>
 
 </launch>
