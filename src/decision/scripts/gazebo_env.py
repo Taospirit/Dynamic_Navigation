@@ -14,18 +14,18 @@ from gazebo_msgs.msg import ModelState, ModelStates
 from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
 
-ros_path = '/opt/ros/kinetic/lib/python2.7/dist-packages'
-learning_path = '/home/lintao/.conda/envs/learning'
-conda_path = '/home/lintao/anaconda3'
+ROS_PATH = '/opt/ros/kinetic/lib/python2.7/dist-packages'
+LEARNING_PATH = '/home/lintao/.conda/envs/learning'
+CONDA_PATH = '/home/lintao/anaconda3'
 
 VERSION = sys.version_info.major
 if VERSION == 2:
     import cv2
-elif ros_path in sys.path:
-    sys.path.remove(ros_path)
+elif ROS_PATH in sys.path:
+    sys.path.remove(ROS_PATH)
     import cv2
     from cv_bridge import CvBridge, CvBridgeError
-    sys.path.append(ros_path)
+    sys.path.append(ROS_PATH)
 
 
 class gazebo_env():
@@ -164,8 +164,7 @@ class gazebo_env():
         laser_data = [(laser_clip[i] + laser_clip[i+1]) / 2 for i in range(0, len(laser_clip), 2)]    
         self.laser_data_set.append(laser_data)
 
-        if len(self.laser_data_set) > self.num_sikp_frame * self.num_stack_frame: 
-            del self.laser_data_set[0] 
+        if len(self.laser_data_set) > self.num_sikp_frame * self.num_stack_frame: del self.laser_data_set[0] 
 
     def _image_callback(self, data):
         self.rgb_image_raw = self.bridge.imgmsg_to_cv2(data)
@@ -174,8 +173,7 @@ class gazebo_env():
         img_data = np.reshape(img_data, (self.img_size, self.img_size))
         self.image_data_set.append(img_data)
 
-        if len(self.image_data_set) > self.num_sikp_frame * self.num_stack_frame: 
-            del self.image_data_set[0]
+        if len(self.image_data_set) > self.num_sikp_frame * self.num_stack_frame: del self.image_data_set[0]
 
     def _gazebo_states_callback(self, data):
         self.gazebo_state_info = data

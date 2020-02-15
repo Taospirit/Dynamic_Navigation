@@ -110,7 +110,7 @@ class DeepQNetwork:
             self._train_op = tf.train.RMSPropOptimizer(self.lr).minimize(self.loss)
 
     def _net_model(self, net_input, net_name, col_name, conv_name, fc_name):
-        with tf.variable_scope(net_name):
+        with tf.variable_scope(net_name):xia
             c_names = [col_name, tf.GraphKeys.GLOBAL_VARIABLES]
             # net_input = [self.state_image, self.state_laser]
             image_data = (net_input[0] - (255.0 / 2)) / (255.0)  # normalization [80, 80, 4]
