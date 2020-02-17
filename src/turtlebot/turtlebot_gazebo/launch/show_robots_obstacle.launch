@@ -42,7 +42,7 @@
     </include>
   </group>
 
-  <include file="$(find turtlebot_gazebo)/launch/start_world.launch">
+  <include file="$(find turtlebot_gazebo)/launch/origin/start_world.launch">
     <arg name="gazebo_world" value="$(arg world)" />
   </include>
 

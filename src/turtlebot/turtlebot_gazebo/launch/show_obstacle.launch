@@ -1,5 +1,6 @@
 <launch>
   <arg name="world" value="empty" />
+  <arg name="rviz" value="true" />
   <arg name="ROBOT_NAME" default="obs"/>
   <arg name="INIT_POSE" default="-x 0 -y 0 -z 0" />
 
@@ -13,8 +14,11 @@
     <param name="publish_frequency" type="double" value="30.0" />
   </node>
 
-  <include file="$(find turtlebot_gazebo)/launch/start_world.launch">
+  <include file="$(find turtlebot_gazebo)/launch/origin/start_world.launch">
     <arg name="gazebo_world" value="$(arg world)" />
   </include>
 
+  <group if="$(arg rviz)">
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find turtlebot_description)/config/obstacle.rviz" />
+  </group>
 </launch>

@@ -55,7 +55,7 @@ class gazebo_env():
         self.laser_sacn_clip = rospy.get_param("/dist/laser_sacn_clip")
         self.dist_near_goal = rospy.get_param("/dist/near_goal")
         self.dist_near_obs = rospy.get_param("/dist/near_obs")
-        self.dist_min_scan = rospy.get_param("/dist/min_scan")
+        self.dist_scan_set = rospy.get_param("/dist/min_scan")
 
         self.laser_size = rospy.get_param("/params/laser_size")
         self.img_size = rospy.get_param("/params/img_size")
@@ -79,8 +79,6 @@ class gazebo_env():
         rospy.Subscriber(gazebo_states_, ModelStates, self._gazebo_states_callback, queue_size=1)
         self.pub_agent = rospy.Publisher(agent_cmd_, Twist, queue_size=1)
         self.pub_state = rospy.Publisher(gazebo_set_, ModelState, queue_size=1)
-        self.val = rospy.ServiceProxy(gazebo_set_, SetModelState)
-
 
         self.cmd_vel = Twist()
         # self.cmd_vel.linear.x = 0
@@ -231,7 +229,6 @@ class gazebo_env():
         # self.pose_msg.twist.linear.x = 0
         # self.pose_msg.twist.angular.z = 0
         # self.pub_state.publish(self.state_pub_)
-        self.val(self.state_pub_)
 
         print ('pub state position ')
         time.sleep(0.2)
@@ -294,7 +291,7 @@ class gazebo_env():
     def _get_info(self):
         self._set_info(0)
         self.check_near_goal(self.dist_near_goal)
-        self.check_near_obs(self.dist_near_obs, self.dist_min_scan, 100)
+        self.check_near_obs(self.dist_near_obs, self.dist_scan_set, 100)
         # print ('----info is {}'.format(self.info))
         return self.info
 
@@ -303,12 +300,21 @@ class gazebo_env():
             print ('=====!!!agent get goal at {:.2f}!!!====='.format(self.goal_dist))
             return self._set_info(2)
        
-    def check_near_obs(self, dist_min, laser_dist_min, scan_num):
+    def check_near_obs(self, dist_min, laser_min_set, scan_num):
         laser_min_count, laser_min, obs_dist_min = 0, 1000, 1000
         for obs in self.gazebo_obs_states:
             obs_dist = self.euclidean_distance(self.agent_position, obs)
             if obs_dist < obs_dist_min:
+                obs_dist_min = obs_dist
+        if obs_dist_min < dist_min:
+            print ('----!!!robot too close to the obs for {:.2f}!!!-----'.format(obs_dist_min))
+            return self._set_info(1)
+
+        for r in self.laser_scan_raw:
+            if r < laser_min:
                 laser_min = r
+            if r < laser_min_set:
+                laser_min_count += 1
         # print ('------laser_min is {}'.format(laser_min))
         if laser_min_count > scan_num:
             print ('----!!!laser too close to the obs for {:.2f}, count {}!!!-----'.format(laser_min, laser_min_count))
@@ -433,30 +439,30 @@ if __name__ == "__main__":
     #     s_, r, d, i = env.step(choose_action)
 
     #======test reward=======#
-        # speed = 0.1
-        # move = {'w': [speed, 0],
-        #         'a': [0, speed],
-        #         's': [-speed, 0],
-        #         'd': [0, -speed]}
-        # r_list = []
-        # action_n = 0
-        # print ('===test reward, wait for tele_input===')
-        # key = get_key()
-        # if key in move.keys():
-        #     state_, reward, done, info = env.step(0, move[key])
-        #     action_n += 1
-        #     r_list.append(reward)
-        #     # print ('reward {:.3f}, info {}'.format(reward, info))
+        speed = 0.2
+        move = {'w': [speed, 0],
+                'a': [0, speed],
+                's': [-speed, 0],
+                'd': [0, -speed]}
+        r_list = []
+        action_n = 0
+        print ('===test reward, wait for tele_input===')
+        key = get_key()
+        if key in move.keys():
+            state_, reward, done, info = env.step(0, move[key])
+            action_n += 1
+            r_list.append(reward)
+            # print ('reward {:.3f}, info {}'.format(reward, info))
 
-        #     if done:
-        #         r = get_totoal_reward(r_list, 0.9)
-        #         print ('----action_n: {}, total_reward: {:.3f}'.format(action_n, r))
-        #         r_list = []
-        #         action_n = 0
+            if done:
+                r = get_totoal_reward(r_list, 0.9)
+                print ('----action_n: {}, total_reward: {:.3f}'.format(action_n, r))
+                r_list = []
+                action_n = 0
 
-        # else:
-        #     print ('!!!stop move!!!')
-        #     env.step(0, [0, 0])
+        else:
+            print ('!!!stop move!!!')
+            env.step(0, [0, 0])
 
     #====== test odom =======#
     #     env._check_odom_ready()
@@ -470,9 +476,9 @@ if __name__ == "__main__":
     #     time.sleep(0.5)
 
     #====== check gazebo state info=======#
-        v_x = env.gazebo_obs_states[-1]['vx']
-        v_y = env.gazebo_obs_states[-1]['vy']
-        env.pub_gazebo_state()
+        # v_x = env.gazebo_obs_states[-1]['vx']
+        # v_y = env.gazebo_obs_states[-1]['vy']
+        # env.pub_gazebo_state()
         # rospy.loginfo('linear.x is {:.2f}, linear.y is {:.2f}'.format(v_x, v_y))
         # time.sleep(0.5)
 

@@ -12,12 +12,16 @@
   <arg name="rviz" value="false" />
   <arg name="rviz_file" value="single_turtlebot" />
 
-  <include file="$(find turtlebot_gazebo)/launch/includes/$(arg robot).launch">
-    <arg name="robot_name" value="$(arg robot_name)" />
-    <arg name="init_pose" value="$(arg init_pose)" />
-  </include>
 
-  <include file="$(find turtlebot_gazebo)/launch/start_world.launch">
+  <group ns="$(arg robot_name)">
+    <param name="tf_prefix" value="$(arg robot_name)_tf" />
+    <include file="$(find turtlebot_gazebo)/launch/includes/$(arg robot).launch">
+      <arg name="ROBOT_NAME" value="$(arg robot_name)" />
+      <arg name="INIT_POSE" value="$(arg init_pose)" />
+    </include>
+  </group>
+
+  <include file="$(find turtlebot_gazebo)/launch/origin/start_world.launch">
     <arg name="gazebo_world" value="$(arg world)" />
   </include>
 
