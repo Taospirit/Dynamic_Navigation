@@ -24,6 +24,7 @@
         <wheelTorque>5</wheelTorque>
         <odometrySource>world</odometrySource>
         <publishTf>1</publishTf>
+        <publishOdomTF>true</publishOdomTF>
       </plugin>
     </gazebo>
 <!-- 	

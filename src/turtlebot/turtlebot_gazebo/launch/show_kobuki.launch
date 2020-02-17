@@ -3,7 +3,7 @@
   <arg name="stacks"    value="hexagons"/>  <!-- hexagons, circles -->
   <arg name="3d_sensor" value="kinect"/>  <!-- kinect, asus_xtion_pro -->
   
-  <arg name="rviz" value="false"/>
+  <arg name="rviz" value="true"/>
   <!-- <arg name="rviz_file" value="single_turtlebot"/> -->
   <arg name="world" value="empty" />
 

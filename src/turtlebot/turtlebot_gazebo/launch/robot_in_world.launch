@@ -7,16 +7,16 @@
   <arg name="world" value="empty_wall" />
   <!-- <arg name="world" value="static_obs" /> -->
 
-  <arg name="robot_name" value="agent" />
+  <arg name="ns" value="agent" />
   <arg name="init_pose" value="-x 0 -y 0 -z 0" />
   <arg name="rviz" value="false" />
   <arg name="rviz_file" value="single_turtlebot" />
 
 
-  <group ns="$(arg robot_name)">
-    <param name="tf_prefix" value="$(arg robot_name)_tf" />
+  <group ns="$(arg ns)">
+    <param name="tf_prefix" value="$(arg ns)_tf" />
     <include file="$(find turtlebot_gazebo)/launch/includes/$(arg robot).launch">
-      <arg name="ROBOT_NAME" value="$(arg robot_name)" />
+      <arg name="ROBOT_NAME" value="$(arg ns)" />
       <arg name="INIT_POSE" value="$(arg init_pose)" />
     </include>
   </group>
