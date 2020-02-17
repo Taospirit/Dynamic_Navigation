@@ -1,7 +1,7 @@
 <launch>
   <arg name="base"      value="kobuki"/> <!-- kobuki, create -->
   <arg name="stacks"    value="hexagons"/>  <!-- hexagons, circles -->
-  <arg name="3d_sensor" value="asus_xtion_pro"/>  <!-- kinect, asus_xtion_pro -->
+  <arg name="3d_sensor" value="kinect"/>  <!-- kinect, asus_xtion_pro -->
   
   <arg name="rviz" value="false"/>
   <arg name="rviz_file" value="single_turtlebot"/>

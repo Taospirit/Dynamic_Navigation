@@ -2,7 +2,7 @@
 <!--
     - Base      : create
     - Stacks    : circles
-    - 3d Sensor : kinect
+    - 3d Sensor : sensor_asus_xtion_pro
 -->    
 <robot name="turtlebot" xmlns:xacro="http://ros.org/wiki/xacro">
 

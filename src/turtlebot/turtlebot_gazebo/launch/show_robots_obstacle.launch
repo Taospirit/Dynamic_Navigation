@@ -1,0 +1,53 @@
+<launch>
+  <!-- kobuki, create -->
+  <arg name="robot" value="create" /> 
+  <!-- <arg name="robot" value="kobuki" /> -->
+  
+  <arg name="world" value="empty_goal" />
+  <!-- <arg name="world" value="empty_wall" /> -->
+  <!-- <arg name="world" value="static_obs" /> -->
+  <arg name="rviz" value="false" />
+  <arg name="rviz_file" value="single_turtlebot" />
+
+  <arg name="robot_name1" value="robot1" />
+  <arg name="init_pose1" value="-x 0 -y 0 -z 0" />
+  <arg name="robot_name2" value="robot2" />
+  <arg name="init_pose2" value="-x 1 -y 1 -z 0" />
+  
+  <arg name="obs_name0" value="obs0" />
+  <arg name="obs_init_pose0" value="-x 5 -y 5 -z 0" />
+
+
+  <group ns="robot1">
+  <param name="tf_prefix" value="robot1_tf" />
+    <include file="$(find turtlebot_gazebo)/launch/includes/$(arg robot).launch">
+        <arg name="ROBOT_NAME" value="$(arg robot_name1)" />
+        <arg name="INIT_POSE" value="$(arg init_pose1)" />
+    </include>
+  </group>
+
+  <group ns="robot2">
+  <param name="tf_prefix" value="robot2_tf" />
+    <include file="$(find turtlebot_gazebo)/launch/includes/$(arg robot).launch">
+        <arg name="ROBOT_NAME" value="$(arg robot_name2)" />
+        <arg name="INIT_POSE" value="$(arg init_pose2)" />
+    </include>
+  </group>
+
+  <group ns="obs0">
+  <param name="tf_prefix" value="obs0_tf" />
+    <include file="$(find turtlebot_gazebo)/launch/includes/obstacle.launch">
+      <arg name="ROBOT_NAME" value="$(arg obs_name0)" />
+      <arg name="INIT_POSE" value="$(arg obs_init_pose0)" />
+    </include>
+  </group>
+
+  <include file="$(find turtlebot_gazebo)/launch/start_world.launch">
+    <arg name="gazebo_world" value="$(arg world)" />
+  </include>
+
+  <group if="$(arg rviz)">
+    <node pkg="rviz" type="rviz" name="rviz" args="-d $(find turtlebot_gazebo)/rviz/$(arg rviz_file).rviz" />
+  </group>
+
+</launch>

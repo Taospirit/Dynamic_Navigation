@@ -304,7 +304,6 @@
       <collision>
         <origin xyz="0.0 0.0 0.0" rpy="0 0 0" />
         <geometry>
-          <!-- 原尺寸阻挡激光 -->
           <!-- <box size="0.288 0.315 0.006401" /> -->
           <box size="0.01 0.01 0.01" />
         </geometry>

@@ -6,10 +6,16 @@
   <!-- <arg name="world" value="empty_goal" /> -->
   <arg name="world" value="empty_wall" />
   <!-- <arg name="world" value="static_obs" /> -->
+
+  <arg name="robot_name" value="agent" />
+  <arg name="init_pose" value="-x 0 -y 0 -z 0" />
   <arg name="rviz" value="false" />
   <arg name="rviz_file" value="single_turtlebot" />
 
-  <include file="$(find turtlebot_gazebo)/launch/includes/$(arg robot).launch" />
+  <include file="$(find turtlebot_gazebo)/launch/includes/$(arg robot).launch">
+    <arg name="robot_name" value="$(arg robot_name)" />
+    <arg name="init_pose" value="$(arg init_pose)" />
+  </include>
 
   <include file="$(find turtlebot_gazebo)/launch/start_world.launch">
     <arg name="gazebo_world" value="$(arg world)" />

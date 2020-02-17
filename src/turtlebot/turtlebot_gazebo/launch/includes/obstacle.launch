@@ -1,0 +1,14 @@
+<launch>
+  <arg name="ROBOT_NAME" default="obs"/>
+  <arg name="INIT_POSE" default="-x 0 -y 0 -z 0" />
+
+  <arg name="urdf_file" default="$(find xacro)/xacro --inorder '$(find turtlebot_description)/urdf/obstacle.urdf.xacro'" />
+  <param name="robot_description" command="$(arg urdf_file)" />
+
+  <node name="spawn_turtlebot_model" pkg="gazebo_ros" type="spawn_model"
+        args="$(arg INIT_POSE) -unpause -urdf -param robot_description -model $(arg ROBOT_NAME)"/>
+  
+  <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher">
+    <param name="publish_frequency" type="double" value="30.0" />
+  </node>
+</launch>

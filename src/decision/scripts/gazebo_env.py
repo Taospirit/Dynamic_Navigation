@@ -36,7 +36,7 @@ class gazebo_env():
         self.agent_name = 'agent'
         self.agent_goal = {'x':10, 'y':10}
         self.agent_position = {'x':0, 'y':0}
-        self.gazebo_obs_states = [{'x':0, 'y':0}]
+        self.gazebo_obs_states = [{'x':0, 'y':0, 'vx':0, 'vy':0}]
 
         self.bridge = CvBridge()
         self.odom, self.rgb_image_raw, self.laser_scan_raw = None, None, None
@@ -79,12 +79,15 @@ class gazebo_env():
         rospy.Subscriber(gazebo_states_, ModelStates, self._gazebo_states_callback, queue_size=1)
         self.pub_agent = rospy.Publisher(agent_cmd_, Twist, queue_size=1)
         self.pub_state = rospy.Publisher(gazebo_set_, ModelState, queue_size=1)
+        self.val = rospy.ServiceProxy(gazebo_set_, SetModelState)
+
 
         self.cmd_vel = Twist()
         # self.cmd_vel.linear.x = 0
         # self.cmd_vel.angular.z = 0
         self.cmd_vel_last = {'v':0, 'w':0}
         self.pose_msg = ModelState()
+        self.state_pub_ = ModelState()
 
         self.action = [0, 0] # init action
         self.action_done = False
@@ -177,14 +180,21 @@ class gazebo_env():
 
     def _gazebo_states_callback(self, data):
         self.gazebo_state_info = data
-        self.gazebo_obs_states = [{'x':0, 'y':0} for name in data.name if 'obs' in name]
+        self.gazebo_obs_states = [{'x':0, 'y':0, 'vx':0, 'vy':0} for name in data.name if 'obs' in name]
 
         for i in range(len(data.name)):
             p_x = data.pose[i].position.x
             p_y = data.pose[i].position.y
             name = str(data.name[i])
             if 'obs' in name:
-                self.gazebo_obs_states[int(data.name[i][-1])] = {'x':p_x, 'y':p_y}
+                index = int(data.name[i][-1])
+                v_x = data.twist[i].linear.x
+                v_y = data.twist[i].linear.y
+                self.gazebo_obs_states[index]['x'] = p_x
+                self.gazebo_obs_states[index]['y'] = p_y
+                self.gazebo_obs_states[index]['vx'] = v_x
+                self.gazebo_obs_states[index]['vy'] = v_y
+
             elif name == 'agent_point_goal':
                 self.agent_goal['x'] = p_x
                 self.agent_goal['y'] = p_y
@@ -193,6 +203,9 @@ class gazebo_env():
                 self.agent_position['y'] = p_y
 
         self.goal_dist = self.euclidean_distance(self.agent_position, self.agent_goal)
+        # print ('state_x is {}'.format(self.gazebo_obs_states[-1]['x']))
+        # self.pub_gazebo_state()
+
         # info test
         # print ('========')
         # for item in self.gazebo_obs_states:
@@ -200,7 +213,28 @@ class gazebo_env():
         # print(self.agent_goal)
         # print(self.agent_position)
     #endregion
+    def pub_gazebo_state(self):
+        self.state_pub_.model_name = 'obs0'
+        self.state_pub_.reference_frame = 'world'
+        # self.state_pub_.twist.linear.x = 5
+        # self.state_pub_.twist.linear.y = 5
 
+        self.state_pub_.pose.position.x += 1
+        self.state_pub_.pose.position.y = 0
+        self.state_pub_.pose.position.z = 0
+        if self.gazebo_obs_states[0]['x'] > 8:
+            self.state_pub_.pose.position.x = 2
+
+        # self.pose_msg.model_name = self.agent_name
+        # self.pose_msg.pose.position.x = 0
+        # self.pose_msg.pose.position.y = 0
+        # self.pose_msg.twist.linear.x = 0
+        # self.pose_msg.twist.angular.z = 0
+        # self.pub_state.publish(self.state_pub_)
+        self.val(self.state_pub_)
+
+        print ('pub state position ')
+        time.sleep(0.2)
 
     #region get_env_info
     def _get_state(self):# sensor data collection
@@ -274,16 +308,6 @@ class gazebo_env():
         for obs in self.gazebo_obs_states:
             obs_dist = self.euclidean_distance(self.agent_position, obs)
             if obs_dist < obs_dist_min:
-                obs_dist_min = obs_dist
-        # print ('------obs_dist_min is {}'.format(obs_dist_min))
-        if obs_dist_min < dist_min:
-            print ('----!!!agent near the obs at {:.2f}!!!----'.format(obs_dist))
-            return self._set_info(1)
-                
-        for r in self.laser_scan_raw:
-            if r < laser_dist_min:
-                laser_min_count += 1
-            if r < laser_min:
                 laser_min = r
         # print ('------laser_min is {}'.format(laser_min))
         if laser_min_count > scan_num:
@@ -399,54 +423,57 @@ if __name__ == "__main__":
     print ('---before while---')
     env.reset()
 
+    while not rospy.is_shutdown():
+
     #======test basic_logic======
-    # while not rospy.is_shutdown():
     #     if env.action_count > 1000:
     #         env.reset()
     #     choose_action = np.random.randint(1, 10)
     #     print ('choose_action {}, count {}'.format(choose_action, env.action_count))
     #     s_, r, d, i = env.step(choose_action)
-    # rospy.spin()
 
     #======test reward=======#
-    speed = 0.1
-    move = {'w': [speed, 0],
-            'a': [0, speed],
-            's': [-speed, 0],
-            'd': [0, -speed]}
-    r_list = []
-    action_n = 0
-    while not rospy.is_shutdown():
-        print ('===test reward, wait for tele_input===')
-        key = get_key()
-        if key in move.keys():
-            state_, reward, done, info = env.step(0, move[key])
-            action_n += 1
-            r_list.append(reward)
-            # print ('reward {:.3f}, info {}'.format(reward, info))
+        # speed = 0.1
+        # move = {'w': [speed, 0],
+        #         'a': [0, speed],
+        #         's': [-speed, 0],
+        #         'd': [0, -speed]}
+        # r_list = []
+        # action_n = 0
+        # print ('===test reward, wait for tele_input===')
+        # key = get_key()
+        # if key in move.keys():
+        #     state_, reward, done, info = env.step(0, move[key])
+        #     action_n += 1
+        #     r_list.append(reward)
+        #     # print ('reward {:.3f}, info {}'.format(reward, info))
 
-            if done:
-                r = get_totoal_reward(r_list, 0.9)
-                print ('----action_n: {}, total_reward: {:.3f}'.format(action_n, r))
-                r_list = []
-                action_n = 0
+        #     if done:
+        #         r = get_totoal_reward(r_list, 0.9)
+        #         print ('----action_n: {}, total_reward: {:.3f}'.format(action_n, r))
+        #         r_list = []
+        #         action_n = 0
 
-        else:
-            print ('!!!stop move!!!')
-            env.step(0, [0, 0])
+        # else:
+        #     print ('!!!stop move!!!')
+        #     env.step(0, [0, 0])
 
     #====== test odom =======#
-    # while not rospy.is_shutdown():
     #     env._check_odom_ready()
     #     odom = env.get_odom()
     #     linear_vel = odom.twist.twist.linear.x
     #     angular_vel = odom.twist.twist.angular.z
     #     print ('linear_vel is {:.2f}, angular_vel is {:.2f}'.format(linear_vel, angular_vel))
 
-    #====== test safe_dist======#
-    # while not rospy.is_shutdown():
-   
+    #====== test safe_dist======#   
     #     env.check_near_obs(0, 0, 1000)
     #     time.sleep(0.5)
+
+    #====== check gazebo state info=======#
+        v_x = env.gazebo_obs_states[-1]['vx']
+        v_y = env.gazebo_obs_states[-1]['vy']
+        env.pub_gazebo_state()
+        # rospy.loginfo('linear.x is {:.2f}, linear.y is {:.2f}'.format(v_x, v_y))
+        # time.sleep(0.5)
 
     rospy.spin()
