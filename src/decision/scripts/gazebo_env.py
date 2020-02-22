@@ -6,6 +6,8 @@ import sys
 import time
 import numpy as np
 import threading
+import tf
+import numpy as np
 from collections import namedtuple
 # from cv_bridge import CvBridge, CvBridgeError
 from sensor_msgs.msg import LaserScan, Image
@@ -13,6 +15,7 @@ from gazebo_msgs.srv import SetModelState
 from gazebo_msgs.msg import ModelState, ModelStates
 from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
+from Planner import *
 
 ROS_PATH = '/opt/ros/kinetic/lib/python2.7/dist-packages'
 LEARNING_PATH = '/home/lintao/.conda/envs/learning'
@@ -34,9 +37,10 @@ class gazebo_env():
         # self.point = namedtuple('point', ['name', 'x', 'y'])
 
         self.agent_name = 'agent'
+        self.obs_name = 'obs'
         self.agent_goal = {'x':10, 'y':10}
         self.agent_position = {'x':0, 'y':0}
-        self.gazebo_obs_states = [{'x':0, 'y':0, 'vx':0, 'vy':0}]
+        self.gazebo_obs_states = [{'x':0, 'y':0, 'vx':0, 'vy':0, 'yaw':0}]
 
         self.bridge = CvBridge()
         self.odom, self.rgb_image_raw, self.laser_scan_raw = None, None, None
@@ -78,14 +82,14 @@ class gazebo_env():
         rospy.Subscriber(rgb_image_, Image, self._image_callback)
         rospy.Subscriber(gazebo_states_, ModelStates, self._gazebo_states_callback, queue_size=1)
         self.pub_agent = rospy.Publisher(agent_cmd_, Twist, queue_size=1)
-        self.pub_state = rospy.Publisher(gazebo_set_, ModelState, queue_size=1)
+        self.pub_gazebo = rospy.Publisher(gazebo_set_, ModelState, queue_size=1)
 
         self.cmd_vel = Twist()
         # self.cmd_vel.linear.x = 0
         # self.cmd_vel.angular.z = 0
         self.cmd_vel_last = {'v':0, 'w':0}
-        self.pose_msg = ModelState()
-        self.state_pub_ = ModelState()
+        self.agent_state_ = ModelState()
+        self.obs_state_ = ModelState()
 
         self.action = [0, 0] # init action
         self.action_done = False
@@ -178,13 +182,13 @@ class gazebo_env():
 
     def _gazebo_states_callback(self, data):
         self.gazebo_state_info = data
-        self.gazebo_obs_states = [{'x':0, 'y':0, 'vx':0, 'vy':0} for name in data.name if 'obs' in name]
+        self.gazebo_obs_states = [{'x':0, 'y':0, 'vx':0, 'vy':0, 'yaw':0} for name in data.name if self.obs_name in name]
 
         for i in range(len(data.name)):
             p_x = data.pose[i].position.x
             p_y = data.pose[i].position.y
             name = str(data.name[i])
-            if 'obs' in name:
+            if self.obs_name in name:
                 index = int(data.name[i][-1])
                 v_x = data.twist[i].linear.x
                 v_y = data.twist[i].linear.y
@@ -192,6 +196,7 @@ class gazebo_env():
                 self.gazebo_obs_states[index]['y'] = p_y
                 self.gazebo_obs_states[index]['vx'] = v_x
                 self.gazebo_obs_states[index]['vy'] = v_y
+                self.gazebo_obs_states[index]['yaw'] = self.euler_from_quaternion(data.pose[i])[2]
 
             elif name == 'agent_point_goal':
                 self.agent_goal['x'] = p_x
@@ -202,7 +207,7 @@ class gazebo_env():
 
         self.goal_dist = self.euclidean_distance(self.agent_position, self.agent_goal)
         # print ('state_x is {}'.format(self.gazebo_obs_states[-1]['x']))
-        # self.pub_gazebo_state()
+        # self.pub_gazebo_states()
 
         # info test
         # print ('========')
@@ -211,27 +216,91 @@ class gazebo_env():
         # print(self.agent_goal)
         # print(self.agent_position)
     #endregion
-    def pub_gazebo_state(self):
-        self.state_pub_.model_name = 'obs0'
-        self.state_pub_.reference_frame = 'world'
-        # self.state_pub_.twist.linear.x = 5
-        # self.state_pub_.twist.linear.y = 5
 
-        self.state_pub_.pose.position.x += 1
-        self.state_pub_.pose.position.y = 0
-        self.state_pub_.pose.position.z = 0
+    def pub_gazebo_states(self):
+        self.obs_state_.model_name = 'obs0'
+        self.obs_state_.reference_frame = 'world'
+        # self.obs_state_.twist.linear.x = 5
+        # self.obs_state_.twist.linear.y = 5
+
+        self.obs_state_.pose.position.x += 1
+        self.obs_state_.pose.position.y = 0
+        self.obs_state_.pose.position.z = 0
         if self.gazebo_obs_states[0]['x'] > 8:
-            self.state_pub_.pose.position.x = 2
+            self.obs_state_.pose.position.x = 2
 
-        # self.pose_msg.model_name = self.agent_name
-        # self.pose_msg.pose.position.x = 0
-        # self.pose_msg.pose.position.y = 0
-        # self.pose_msg.twist.linear.x = 0
-        # self.pose_msg.twist.angular.z = 0
-        # self.pub_state.publish(self.state_pub_)
+        # self.agent_state_.model_name = self.agent_name
+        # self.agent_state_.pose.position.x = 0
+        # self.agent_state_.pose.position.y = 0
+        # self.agent_state_.twist.linear.x = 0
+        # self.agent_state_.twist.angular.z = 0
+        # self.pub_state.publish(self.obs_state_)
 
         print ('pub state position ')
         time.sleep(0.2)
+
+    def euler_from_quaternion(self, pose):
+        x = pose.orientation.x 
+        y = pose.orientation.y 
+        z = pose.orientation.z 
+        w = pose.orientation.w 
+        Roll = math.atan2(2 * (w * x + y * z), 1 - 2 * (x**2+y**2))
+        Pitch = math.asin(2 * (w * y - z * x))
+        Yaw = math.atan2(2 * (w * z + x * y), 1 - 2 * (y**2 + z**2))
+        return [Roll, Pitch, Yaw] # [r p y]
+
+    def quaternion_from_euler(self, y, p=0, r=0):
+        q3 = math.cos(r / 2) * math.cos(p / 2) * math.cos(y / 2) + \
+            math.sin(r / 2) * math.sin(p / 2) * math.sin(y / 2)
+        q0 = math.sin(r / 2) * math.cos(p / 2) * math.cos(y / 2) - \
+            math.cos(r / 2) * math.sin(p / 2) * math.sin(y / 2)
+        q1 = math.cos(r / 2) * math.sin(p / 2) * math.cos(y / 2) + \
+            math.sin(r / 2) * math.cos(p / 2) * math.sin(y / 2)
+        q2 = math.cos(r / 2) * math.cos(p / 2) * math.sin(y / 2) - \
+            math.sin(r / 2) * math.sin(p / 2) * math.cos(y / 2)
+        return [q0, q1, q2, q3] # [x y z w]
+
+    def _get_random_position(self, num, width=10, safe_dist=2):
+        while True:
+            x_list = np.random.uniform(-width, width, num)
+            y_list = np.random.uniform(-width, width, num)
+            done = True
+            for i in range(num):
+                for j in range(i+1, num):
+                    dist = math.hypot(x_list[i]-x_list[j], y_list[i]-y_list[j])
+                    dist_agent = math.hypot(x_list[j], y_list[j])
+                    if dist < safe_dist or dist_agent < safe_dist:
+                        done = False
+                        break
+                if not done:
+                    break
+            if done:
+                return np.dstack((x_list, y_list))[0]
+
+    def set_obs_init_position(self, pose_list=None):
+        obs_num = len(self.gazebo_obs_states)
+        # get init position
+        if not pose_list:
+            # get_done = False
+            pose_list = self._get_random_position(obs_num)
+        # print ()
+        yaw_list = np.random.uniform(-math.pi, math.pi, obs_num)
+        quat_list = [self.quaternion_from_euler(y) for y in yaw_list]
+        # set init position
+        for i in range(obs_num):
+            self.obs_state_.model_name = self.obs_name + str(i)
+            # print ('====model name is {}===='.format(self.obs_name + str(i)))
+            self.obs_state_.pose.position.x = pose_list[i][0]
+            self.obs_state_.pose.position.y = pose_list[i][1]
+            # print ('x is {:.2f}, y is {:.2f}'.format(pose_list[i][0], pose_list[i][1]))
+            self.obs_state_.pose.orientation.x = quat_list[i][0]
+            self.obs_state_.pose.orientation.y = quat_list[i][1]
+            self.obs_state_.pose.orientation.z = quat_list[i][2]
+            self.obs_state_.pose.orientation.w = quat_list[i][3]
+            self.pub_gazebo.publish(self.obs_state_)
+            # print ('reset obs{} / '.format(i))
+            time.sleep(0.01)
+    
 
     #region get_env_info
     def _get_state(self):# sensor data collection
@@ -326,12 +395,12 @@ class gazebo_env():
 
     def reset(self): # init state and env
         print ('=============reset_env==============')
-        self.pose_msg.model_name = self.agent_name
-        self.pose_msg.pose.position.x = 0
-        self.pose_msg.pose.position.y = 0
-        self.pose_msg.twist.linear.x = 0
-        self.pose_msg.twist.angular.z = 0
-        self.pub_state.publish(self.pose_msg)
+        self.agent_state_.model_name = self.agent_name
+        self.agent_state_.pose.position.x = 0
+        self.agent_state_.pose.position.y = 0
+        self.agent_state_.twist.linear.x = 0
+        self.agent_state_.twist.angular.z = 0
+        self.pub_gazebo.publish(self.agent_state_)
         self.action_count = 0
         # init state
         return self._get_state()
@@ -464,6 +533,11 @@ if __name__ == "__main__":
             print ('!!!stop move!!!')
             env.step(0, [0, 0])
 
+        if key == 'r':
+            env.set_obs_init_position()
+        if key == 't':
+            p = [[2, 3], [4, -6], [8, -5]]
+            env.set_obs_init_position(p)
     #====== test odom =======#
     #     env._check_odom_ready()
     #     odom = env.get_odom()
@@ -478,7 +552,7 @@ if __name__ == "__main__":
     #====== check gazebo state info=======#
         # v_x = env.gazebo_obs_states[-1]['vx']
         # v_y = env.gazebo_obs_states[-1]['vy']
-        # env.pub_gazebo_state()
+        # env.pub_gazebo()
         # rospy.loginfo('linear.x is {:.2f}, linear.y is {:.2f}'.format(v_x, v_y))
         # time.sleep(0.5)
 

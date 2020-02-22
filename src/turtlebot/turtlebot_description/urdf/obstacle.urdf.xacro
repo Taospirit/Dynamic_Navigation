@@ -34,27 +34,30 @@
 		</gazebo>
 
 		<link name="obstacle_link">
-			<!-- <static>1</static> -->
-			<!-- <inertial>
+			<static>1</static>
+			<inertial>
 				<mass value="2" />
 				<origin xyz="0 0 0.0" />
 				<inertia ixx="0.01" ixy="0.0" ixz="0.0"
 					iyy="0.01" iyz="0.0" izz="0.5" />
-			</inertial> -->
-			<visual>
+			</inertial>
+			<visual name='visual'>
 				<origin xyz="0 0 0" rpy="0 0 0" />
 				<geometry>
 					<cylinder radius="${obs_width}" length = "${obs_hight}"/>
 				</geometry>
 				<material name="black" />
 			</visual>
-			<collision>
+			<collision name='collision'>
 				<origin xyz="0 0 0" rpy="0 0 0" />
 				<geometry>
-					<cylinder radius="${obs_width}" length = "${obs_width}"/>
+					<cylinder radius="${obs_width}" length = "${obs_hight}"/>
 				</geometry>
 			</collision>
 		</link>
+
+
+
 		<joint name="obstacle_joint" type="fixed">
 			<origin xyz="0 0 ${obs_offset}" rpy="0 0 0"/>
 			<parent link="base_link"/>
@@ -80,6 +83,7 @@
 		</link> -->
 
 		<link name="base_link">
+			<static>1</static>
 			<inertial>
 			<mass value="2" />
 			<origin xyz="0 0 0.0" />

@@ -1,0 +1,143 @@
+<launch>
+  <!-- kobuki, create -->
+  <arg name="robot" value="create" /> 
+  <!-- <arg name="robot" value="kobuki" /> -->
+  
+  <!-- <arg name="world" value="empty_goal" /> -->
+  <arg name="world" value="empty_wall" />
+  <!-- <arg name="world" value="static_obs" /> --> 
+  <arg name="rviz" value="false" />
+  <arg name="rviz_file" value="single_turtlebot" />
+
+  <arg name="ns" value="agent" />
+  <arg name="ip" value="-x 0 -y 0 -z 0" />
+
+  <arg name="ons0" value="obs0" />
+  <arg name="oip0" value="-x 3 -y 0 -z 0" />
+
+  <arg name="ons1" value="obs1" />
+  <arg name="oip1" value="-x 2 -y -2 -z 0" />
+
+  <arg name="ons2" value="obs2" />
+  <arg name="oip2" value="-x 5 -y 7 -z 0" />
+
+  <arg name="ons3" value="obs3" />
+  <arg name="oip3" value="-x 8 -y 3 -z 0" />
+
+  <arg name="ons4" value="obs4" />
+  <arg name="oip4" value="-x 10 -y 4 -z 0" />
+
+  <arg name="ons5" value="obs5" />
+  <arg name="oip5" value="-x -9 -y 5 -z 0" />
+
+  <arg name="ons6" value="obs6" />
+  <arg name="oip6" value="-x -7 -y -2 -z 0" />
+
+  <arg name="ons7" value="obs7" />
+  <arg name="oip7" value="-x -4 -y -1 -z 0" />
+
+  <arg name="ons8" value="obs8" />
+  <arg name="oip8" value="-x -1 -y -6 -z 0" />
+
+  <arg name="ons9" value="obs9" />
+  <arg name="oip9" value="-x -6 -y -8 -z 0" />
+
+  <group ns="$(arg ns)">
+  <param name="tf_prefix" value="$(arg ns)_tf" />
+    <include file="$(find turtlebot_gazebo)/launch/includes/$(arg robot).launch">
+        <arg name="ROBOT_NAME" value="$(arg ns)" />
+        <arg name="INIT_POSE" value="$(arg ip)" />
+    </include>
+  </group>
+
+
+  <group ns="$(arg ons0)">
+  <param name="tf_prefix" value="(arg ons0)_tf" />
+    <include file="$(find turtlebot_gazebo)/launch/includes/obstacle.launch">
+      <arg name="ROBOT_NAME" value="$(arg ons0)" />
+      <arg name="INIT_POSE" value="$(arg oip0)" />
+    </include>
+  </group>
+
+  <group ns="$(arg ons1)">
+  <param name="tf_prefix" value="(arg ons1)_tf" />
+    <include file="$(find turtlebot_gazebo)/launch/includes/obstacle.launch">
+      <arg name="ROBOT_NAME" value="$(arg ons1)" />
+      <arg name="INIT_POSE" value="$(arg oip1)" />
+    </include>
+  </group>
+
+  <group ns="$(arg ons2)">
+  <param name="tf_prefix" value="(arg ons2)_tf" />
+    <include file="$(find turtlebot_gazebo)/launch/includes/obstacle.launch">
+      <arg name="ROBOT_NAME" value="$(arg ons2)" />
+      <arg name="INIT_POSE" value="$(arg oip2)" />
+    </include>
+  </group>
+
+  <group ns="$(arg ons3)">
+  <param name="tf_prefix" value="(arg ons3)_tf" />
+    <include file="$(find turtlebot_gazebo)/launch/includes/obstacle.launch">
+      <arg name="ROBOT_NAME" value="$(arg ons3)" />
+      <arg name="INIT_POSE" value="$(arg oip3)" />
+    </include>
+  </group>
+
+  <group ns="$(arg ons4)">
+  <param name="tf_prefix" value="(arg ons4)_tf" />
+    <include file="$(find turtlebot_gazebo)/launch/includes/obstacle.launch">
+      <arg name="ROBOT_NAME" value="$(arg ons4)" />
+      <arg name="INIT_POSE" value="$(arg oip4)" />
+    </include>
+  </group>
+
+  <group ns="$(arg ons5)">
+  <param name="tf_prefix" value="(arg ons5)_tf" />
+    <include file="$(find turtlebot_gazebo)/launch/includes/obstacle.launch">
+      <arg name="ROBOT_NAME" value="$(arg ons5)" />
+      <arg name="INIT_POSE" value="$(arg oip5)" />
+    </include>
+  </group>
+
+  <group ns="$(arg ons6)">
+  <param name="tf_prefix" value="(arg ons6)_tf" />
+    <include file="$(find turtlebot_gazebo)/launch/includes/obstacle.launch">
+      <arg name="ROBOT_NAME" value="$(arg ons6)" />
+      <arg name="INIT_POSE" value="$(arg oip6)" />
+    </include>
+  </group>
+
+  <group ns="$(arg ons7)">
+  <param name="tf_prefix" value="(arg ons7)_tf" />
+    <include file="$(find turtlebot_gazebo)/launch/includes/obstacle.launch">
+      <arg name="ROBOT_NAME" value="$(arg ons7)" />
+      <arg name="INIT_POSE" value="$(arg oip7)" />
+    </include>
+  </group>
+
+  <group ns="$(arg ons8)">
+  <param name="tf_prefix" value="(arg ons8)_tf" />
+    <include file="$(find turtlebot_gazebo)/launch/includes/obstacle.launch">
+      <arg name="ROBOT_NAME" value="$(arg ons8)" />
+      <arg name="INIT_POSE" value="$(arg oip8)" />
+    </include>
+  </group>
+
+  <group ns="$(arg ons9)">
+  <param name="tf_prefix" value="(arg ons9)_tf" />
+    <include file="$(find turtlebot_gazebo)/launch/includes/obstacle.launch">
+      <arg name="ROBOT_NAME" value="$(arg ons9)" />
+      <arg name="INIT_POSE" value="$(arg oip9)" />
+    </include>
+  </group>
+
+
+  <include file="$(find turtlebot_gazebo)/launch/origin/start_world.launch">
+    <arg name="gazebo_world" value="$(arg world)" />
+  </include>
+
+  <group if="$(arg rviz)">
+    <node pkg="rviz" type="rviz" name="rviz" args="-d $(find turtlebot_gazebo)/rviz/$(arg rviz_file).rviz" />
+  </group>
+
+</launch>

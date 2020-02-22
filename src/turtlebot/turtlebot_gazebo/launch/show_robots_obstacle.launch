@@ -18,7 +18,7 @@
   <arg name="oip0" value="-x 5 -y 0 -z 0" />
 
   <group ns="$(arg ns1)">
-  <param name="tf_prefix" value="robot1_tf" />
+  <param name="tf_prefix" value="$(arg ns1)_tf" />
     <include file="$(find turtlebot_gazebo)/launch/includes/$(arg robot).launch">
         <arg name="ROBOT_NAME" value="$(arg ns1)" />
         <arg name="INIT_POSE" value="$(arg ip1)" />
@@ -26,7 +26,7 @@
   </group>
 
   <group ns="$(arg ns2)">
-  <param name="tf_prefix" value="robot2_tf" />
+  <param name="tf_prefix" value="$(arg ns2)_tf" />
     <include file="$(find turtlebot_gazebo)/launch/includes/$(arg robot).launch">
         <arg name="ROBOT_NAME" value="$(arg ns2)" />
         <arg name="INIT_POSE" value="$(arg ip2)" />
@@ -34,7 +34,7 @@
   </group>
 
   <group ns="$(arg ons0)">
-  <param name="tf_prefix" value="obs0_tf" />
+  <param name="tf_prefix" value="(arg ons0)_tf" />
     <include file="$(find turtlebot_gazebo)/launch/includes/obstacle.launch">
       <arg name="ROBOT_NAME" value="$(arg ons0)" />
       <arg name="INIT_POSE" value="$(arg oip0)" />

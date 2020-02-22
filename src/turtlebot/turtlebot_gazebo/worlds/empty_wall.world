@@ -590,7 +590,7 @@
     </link>
     <pose frame=''>-11.4982 -8.19924 0 0 -0 1.55898</pose>
   </model>
-
+<!-- 
 	<model name='obs0'>
       <pose frame=''>6.0 0 0.5 0 -0 0</pose>
       <static>1</static>
@@ -646,7 +646,7 @@
         <enable_wind>0</enable_wind>
         <kinematic>0</kinematic>
       </link>
-    </model>
+    </model> -->
     
   </world>
 </sdf>
