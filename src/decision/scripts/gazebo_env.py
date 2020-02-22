@@ -6,7 +6,6 @@ import sys
 import time
 import numpy as np
 import threading
-import tf
 import numpy as np
 from collections import namedtuple
 # from cv_bridge import CvBridge, CvBridgeError
@@ -38,9 +37,12 @@ class gazebo_env():
 
         self.agent_name = 'agent'
         self.obs_name = 'obs'
+        self.obs_goal_name = 'obs_goal'
         self.agent_goal = {'x':10, 'y':10}
         self.agent_position = {'x':0, 'y':0}
         self.gazebo_obs_states = [{'x':0, 'y':0, 'vx':0, 'vy':0, 'yaw':0}]
+        self.obs_start_list = None
+        self.obs_goal_list = None
 
         self.bridge = CvBridge()
         self.odom, self.rgb_image_raw, self.laser_scan_raw = None, None, None
@@ -182,7 +184,8 @@ class gazebo_env():
 
     def _gazebo_states_callback(self, data):
         self.gazebo_state_info = data
-        self.gazebo_obs_states = [{'x':0, 'y':0, 'vx':0, 'vy':0, 'yaw':0} for name in data.name if self.obs_name in name]
+        # TODO: 逻辑欠妥
+        self.gazebo_obs_states = [{'x':0, 'y':0, 'vx':0, 'vy':0, 'yaw':0} for name in data.name if self.obs_name in name and not self.obs_goal_name in name]
 
         for i in range(len(data.name)):
             p_x = data.pose[i].position.x
@@ -216,6 +219,12 @@ class gazebo_env():
         # print(self.agent_goal)
         # print(self.agent_position)
     #endregion
+
+    def gazebo_pub(self, state):
+        self.pub_gazebo.publish(state)
+
+    def agent_pub(self, cmd_vel):
+        self.pub_agent.publish(cmd_vel)
 
     def pub_gazebo_states(self):
         self.obs_state_.model_name = 'obs0'
@@ -260,6 +269,23 @@ class gazebo_env():
             math.sin(r / 2) * math.sin(p / 2) * math.cos(y / 2)
         return [q0, q1, q2, q3] # [x y z w]
 
+
+    def set_obs_init_position(self):
+        # obs_num = len(self.gazebo_obs_states)
+        # get init position
+        if not self.obs_start_list:
+            # get_done = False
+            self.obs_start_list = self._get_random_position(len(self.gazebo_obs_states))
+        # set init position
+        self._pub_gazebo_states(self.obs_name, self.obs_start_list, len(self.gazebo_obs_states))
+
+    def set_obs_goal_position(self):
+        # obs_num = len(self.gazebo_obs_states)
+        if not self.obs_goal_list:
+            # get_done = False
+            self.obs_goal_list = self._get_random_position(len(self.gazebo_obs_states))
+        self._pub_gazebo_states(self.obs_goal_name, self.obs_goal_list, len(self.gazebo_obs_states))
+
     def _get_random_position(self, num, width=10, safe_dist=2):
         while True:
             x_list = np.random.uniform(-width, width, num)
@@ -275,20 +301,14 @@ class gazebo_env():
                 if not done:
                     break
             if done:
-                return np.dstack((x_list, y_list))[0]
+                theta_list = np.random.uniform(-math.pi, math.pi, num)
+                return np.dstack((x_list, y_list, theta_list))[0]
 
-    def set_obs_init_position(self, pose_list=None):
-        obs_num = len(self.gazebo_obs_states)
-        # get init position
-        if not pose_list:
-            # get_done = False
-            pose_list = self._get_random_position(obs_num)
-        # print ()
-        yaw_list = np.random.uniform(-math.pi, math.pi, obs_num)
-        quat_list = [self.quaternion_from_euler(y) for y in yaw_list]
-        # set init position
-        for i in range(obs_num):
-            self.obs_state_.model_name = self.obs_name + str(i)
+    def _pub_gazebo_states(self, gazebo_state_name, pose_list, num):
+        theta_list = [item[2] for item in pose_list]
+        quat_list = [self.quaternion_from_euler(y) for y in theta_list]
+        for i in range(num):
+            self.obs_state_.model_name = gazebo_state_name + str(i)
             # print ('====model name is {}===='.format(self.obs_name + str(i)))
             self.obs_state_.pose.position.x = pose_list[i][0]
             self.obs_state_.pose.position.y = pose_list[i][1]
@@ -297,10 +317,15 @@ class gazebo_env():
             self.obs_state_.pose.orientation.y = quat_list[i][1]
             self.obs_state_.pose.orientation.z = quat_list[i][2]
             self.obs_state_.pose.orientation.w = quat_list[i][3]
-            self.pub_gazebo.publish(self.obs_state_)
+            self.gazebo_pub(self.obs_state_)
             # print ('reset obs{} / '.format(i))
             time.sleep(0.01)
-    
+
+    def reset_env(self): # reset start list & goal list
+        self.obs_start_list = None
+        self.obs_goal_list = None
+        self.set_obs_init_position()
+        self.set_obs_goal_position()
 
     #region get_env_info
     def _get_state(self):# sensor data collection
@@ -400,7 +425,8 @@ class gazebo_env():
         self.agent_state_.pose.position.y = 0
         self.agent_state_.twist.linear.x = 0
         self.agent_state_.twist.angular.z = 0
-        self.pub_gazebo.publish(self.agent_state_)
+        self.gazebo_pub(self.agent_state_)
+        # self.pub_gazebo.publish(self.agent_state_)
         self.action_count = 0
         # init state
         return self._get_state()
@@ -411,7 +437,7 @@ class gazebo_env():
         self.cmd_vel.linear.x = tele_input[0] if tele_input else self.actions[action_index][0]
         self.cmd_vel.angular.z = tele_input[-1] if tele_input else self.actions[action_index][1]
         print ('set linear vel {}, angular vel {}, index {}'.format(self.cmd_vel.linear.x, self.cmd_vel.angular.z, action_index))
-        self.pub_agent.publish(self.cmd_vel)
+        self.agent_pub(self.cmd_vel)
         # self.wait_until_twist_achieved(self.cmd_vel)
         self.action_count += 1
         
@@ -467,7 +493,7 @@ class gazebo_env():
     def env_destory(self):
         self.cmd_vel.linear.x = 0
         self.cmd_vel.angular.z = 0
-        self.pub_agent.publish(self.cmd_vel)
+        self.agent_pub(self.cmd_vel)
 
 
 def get_key():
@@ -534,10 +560,11 @@ if __name__ == "__main__":
             env.step(0, [0, 0])
 
         if key == 'r':
-            env.set_obs_init_position()
+            # env.set_obs_init_position()
+            env.reset_env()
         if key == 't':
             p = [[2, 3], [4, -6], [8, -5]]
-            env.set_obs_init_position(p)
+            # env.set_obs_init_position(p)
     #====== test odom =======#
     #     env._check_odom_ready()
     #     odom = env.get_odom()

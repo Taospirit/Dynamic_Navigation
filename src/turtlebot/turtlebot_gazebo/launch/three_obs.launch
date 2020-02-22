@@ -42,6 +42,8 @@
   <arg name="ons9" value="obs9" />
   <arg name="oip9" value="-x -6 -y -8 -z 0" />
 
+  <rosparam command="load" file="$(find turtlebot_gazebo)/param/forceFactors.yaml" />
+
   <group ns="$(arg ns)">
   <param name="tf_prefix" value="$(arg ns)_tf" />
     <include file="$(find turtlebot_gazebo)/launch/includes/$(arg robot).launch">
