@@ -16,8 +16,38 @@
             <!-- <real_time_update_rate>100</real_time_update_rate> -->
             <gravity>0 0 -9.8</gravity>
         </physics>
-        <!-- <model name='agent_point_goal'><pose>10 10 0.5 0 0 0</pose><link name='link'><inertial><mass>1</mass></inertial><visual name='visual'><geometry><cylinder><radius>0.5</radius><length>1.0</length></cylinder></geometry><material><script><uri>file://media/materials/scripts/gazebo.material</uri><name>Gazebo/Green</name></script></material></visual><velocity_decay><linear>0</linear><angular>0</angular></velocity_decay><self_collide>0</self_collide><kinematic>0</kinematic><gravity>0</gravity></link></model>
-	 -->
+
+        
+        <model name='agent_goal0'>
+            <pose>1 0 0 0 0 0</pose>
+            <!-- <static>1</static> -->
+            <link name='link'>
+                <inertial>
+                    <mass>1</mass>
+                </inertial>
+                <visual name='visual'>
+                    <geometry>
+                        <cylinder>
+                            <radius>0.1</radius>
+                            <length>0.05</length>
+                        </cylinder>
+                    </geometry>
+                    <material>
+                        <script>
+                            <uri>file://media/materials/scripts/gazebo.material</uri>
+                            <name>Gazebo/Green</name>
+                        </script>
+                    </material>
+                </visual>
+                <velocity_decay>
+                    <linear>0</linear>
+                    <angular>0</angular>
+                </velocity_decay>
+                <self_collide>0</self_collide>
+                <kinematic>0</kinematic>
+                <gravity>0</gravity>
+            </link>
+        </model>
         <model name='grey_wall_0'>
             <static>1</static>
             <link name='link'>
@@ -560,327 +590,296 @@
         </model>
         <!-- 
 	<model name='obs0'><pose frame=''>6.0 0 0.5 0 -0 0</pose><static>1</static><link name='link'><inertial><mass>1</mass><inertia><ixx>0.145833</ixx><ixy>0</ixy><ixz>0</ixz><iyy>0.145833</iyy><iyz>0</iyz><izz>0.125</izz></inertia><pose frame=''>0 0 0 0 -0 0</pose></inertial><collision name='collision'><geometry><cylinder><radius>0.5</radius><length>1</length></cylinder></geometry><max_contacts>10</max_contacts><surface><contact><ode/></contact><bounce/><friction><torsional><ode/></torsional><ode/></friction></surface></collision><visual name='visual'><geometry><cylinder><radius>0.5</radius><length>1</length></cylinder></geometry><material><script><name>Gazebo/Black</name><uri>file://media/materials/scripts/gazebo.material</uri></script></material></visual><self_collide>0</self_collide><enable_wind>0</enable_wind><kinematic>0</kinematic></link></model> -->
-        <!-- <actor name="actor0">
-            <pose>-3 -3 1.02 0 0 0</pose>
-            <skin>
-                <filename>stand.dae</filename>
-                <scale>1</scale>
-            </skin>
-            <animation name="walking">
-                <filename>walk.dae</filename>
-                <scale>1</scale>
-                <interpolate_x>true</interpolate_x>
-            </animation>
-            <plugin filename="/home/lintao/projects/ped_sim_ws/src/gym_ped_sim/actor_plugin/lib/libactorplugin_ros.so" name="None">
-                <speed>0.5</speed>
-                <target>3 3 1.02</target>
-                <ignore_obstacles>
-                    <model>caffe</model>
-                    <model>ground_plane</model>
-                </ignore_obstacles>
-            </plugin>
-        </actor> -->
-
-		
-		<model name='obs_goal0'>
-			<pose>10 10 0.005 0 0 0</pose>
-			<link name='link'>
-				<inertial>
-					<mass>1</mass>
-				</inertial>
-				<visual name='visual'>
-					<geometry>
-						<cylinder>
-								<radius>0.05</radius>
-								<length>0.01</length>
-						</cylinder>
-					</geometry>
-					<material>
-						<script>
-							<uri>file://media/materials/scripts/gazebo.material</uri>
-							<name>Gazebo/White</name>
-						</script>
-					</material>
-				</visual>
-				<velocity_decay>
-					<linear>0</linear>
-					<angular>0</angular>
-				</velocity_decay>
-				<self_collide>0</self_collide>
-				<kinematic>0</kinematic>
-				<gravity>0</gravity>
-			</link>
-		</model>
-
-		<model name='obs_goal1'>
-			<pose>10 8 0.005 0 0 0</pose>
-			<link name='link'>
-				<inertial>
-					<mass>1</mass>
-				</inertial>
-				<visual name='visual'>
-					<geometry>
-						<cylinder>
-								<radius>0.05</radius>
-								<length>0.01</length>
-						</cylinder>
-					</geometry>
-					<material>
-						<script>
-							<uri>file://media/materials/scripts/gazebo.material</uri>
-							<name>Gazebo/White</name>
-						</script>
-					</material>
-				</visual>
-				<velocity_decay>
-					<linear>0</linear>
-					<angular>0</angular>
-				</velocity_decay>
-				<self_collide>0</self_collide>
-				<kinematic>0</kinematic>
-				<gravity>0</gravity>
-			</link>
-		</model>
-
-		<model name='obs_goal2'>
-			<pose>10 6 0.005 0 0 0</pose>
-			<link name='link'>
-				<inertial>
-					<mass>1</mass>
-				</inertial>
-				<visual name='visual'>
-					<geometry>
-						<cylinder>
-								<radius>0.05</radius>
-								<length>0.01</length>
-						</cylinder>
-					</geometry>
-					<material>
-						<script>
-							<uri>file://media/materials/scripts/gazebo.material</uri>
-							<name>Gazebo/White</name>
-						</script>
-					</material>
-				</visual>
-				<velocity_decay>
-					<linear>0</linear>
-					<angular>0</angular>
-				</velocity_decay>
-				<self_collide>0</self_collide>
-				<kinematic>0</kinematic>
-				<gravity>0</gravity>
-			</link>
-		</model>
-
-		<model name='obs_goal3'>
-			<pose>10 4 0.005 0 0 0</pose>
-			<link name='link'>
-				<inertial>
-					<mass>1</mass>
-				</inertial>
-				<visual name='visual'>
-					<geometry>
-						<cylinder>
-								<radius>0.05</radius>
-								<length>0.01</length>
-						</cylinder>
-					</geometry>
-					<material>
-						<script>
-							<uri>file://media/materials/scripts/gazebo.material</uri>
-							<name>Gazebo/White</name>
-						</script>
-					</material>
-				</visual>
-				<velocity_decay>
-					<linear>0</linear>
-					<angular>0</angular>
-				</velocity_decay>
-				<self_collide>0</self_collide>
-				<kinematic>0</kinematic>
-				<gravity>0</gravity>
-			</link>
-		</model>
-
-		<model name='obs_goal4'>
-			<pose>10 2 0.005 0 0 0</pose>
-			<link name='link'>
-				<inertial>
-					<mass>1</mass>
-				</inertial>
-				<visual name='visual'>
-					<geometry>
-						<cylinder>
-								<radius>0.05</radius>
-								<length>0.01</length>
-						</cylinder>
-					</geometry>
-					<material>
-						<script>
-							<uri>file://media/materials/scripts/gazebo.material</uri>
-							<name>Gazebo/White</name>
-						</script>
-					</material>
-				</visual>
-				<velocity_decay>
-					<linear>0</linear>
-					<angular>0</angular>
-				</velocity_decay>
-				<self_collide>0</self_collide>
-				<kinematic>0</kinematic>
-				<gravity>0</gravity>
-			</link>
-		</model>
-
-		<model name='obs_goal5'>
-			<pose>10 0 0.005 0 0 0</pose>
-			<link name='link'>
-				<inertial>
-					<mass>1</mass>
-				</inertial>
-				<visual name='visual'>
-					<geometry>
-						<cylinder>
-								<radius>0.05</radius>
-								<length>0.01</length>
-						</cylinder>
-					</geometry>
-					<material>
-						<script>
-							<uri>file://media/materials/scripts/gazebo.material</uri>
-							<name>Gazebo/White</name>
-						</script>
-					</material>
-				</visual>
-				<velocity_decay>
-					<linear>0</linear>
-					<angular>0</angular>
-				</velocity_decay>
-				<self_collide>0</self_collide>
-				<kinematic>0</kinematic>
-				<gravity>0</gravity>
-			</link>
-		</model>
-
-		<model name='obs_goal6'>
-			<pose>10 -2 0.005 0 0 0</pose>
-			<link name='link'>
-				<inertial>
-					<mass>1</mass>
-				</inertial>
-				<visual name='visual'>
-					<geometry>
-						<cylinder>
-								<radius>0.05</radius>
-								<length>0.01</length>
-						</cylinder>
-					</geometry>
-					<material>
-						<script>
-							<uri>file://media/materials/scripts/gazebo.material</uri>
-							<name>Gazebo/White</name>
-						</script>
-					</material>
-				</visual>
-				<velocity_decay>
-					<linear>0</linear>
-					<angular>0</angular>
-				</velocity_decay>
-				<self_collide>0</self_collide>
-				<kinematic>0</kinematic>
-				<gravity>0</gravity>
-			</link>
-		</model>
-
-		<model name='obs_goal7'>
-			<pose>10 -4 0.005 0 0 0</pose>
-			<link name='link'>
-				<inertial>
-					<mass>1</mass>
-				</inertial>
-				<visual name='visual'>
-					<geometry>
-						<cylinder>
-								<radius>0.05</radius>
-								<length>0.01</length>
-						</cylinder>
-					</geometry>
-					<material>
-						<script>
-							<uri>file://media/materials/scripts/gazebo.material</uri>
-							<name>Gazebo/White</name>
-						</script>
-					</material>
-				</visual>
-				<velocity_decay>
-					<linear>0</linear>
-					<angular>0</angular>
-				</velocity_decay>
-				<self_collide>0</self_collide>
-				<kinematic>0</kinematic>
-				<gravity>0</gravity>
-			</link>
-		</model>
-	
-		<model name='obs_goal8'>
-			<pose>10 -6 0.005 0 0 0</pose>
-			<link name='link'>
-				<inertial>
-					<mass>1</mass>
-				</inertial>
-				<visual name='visual'>
-					<geometry>
-						<cylinder>
-								<radius>0.05</radius>
-								<length>0.01</length>
-						</cylinder>
-					</geometry>
-					<material>
-						<script>
-							<uri>file://media/materials/scripts/gazebo.material</uri>
-							<name>Gazebo/White</name>
-						</script>
-					</material>
-				</visual>
-				<velocity_decay>
-					<linear>0</linear>
-					<angular>0</angular>
-				</velocity_decay>
-				<self_collide>0</self_collide>
-				<kinematic>0</kinematic>
-				<gravity>0</gravity>
-			</link>
-		</model>
-
-		<model name='obs_goal9'>
-			<pose>10 -10 0.005 0 0 0</pose>
-			<link name='link'>
-				<inertial>
-					<mass>1</mass>
-				</inertial>
-				<visual name='visual'>
-					<geometry>
-						<cylinder>
-								<radius>0.05</radius>
-								<length>0.01</length>
-						</cylinder>
-					</geometry>
-					<material>
-						<script>
-							<uri>file://media/materials/scripts/gazebo.material</uri>
-							<name>Gazebo/White</name>
-						</script>
-					</material>
-				</visual>
-				<velocity_decay>
-					<linear>0</linear>
-					<angular>0</angular>
-				</velocity_decay>
-				<self_collide>0</self_collide>
-				<kinematic>0</kinematic>
-				<gravity>0</gravity>
-			</link>
-		</model>
-
+        <!-- <actor name="actor0"><pose>-3 -3 1.02 0 0 0</pose><skin><filename>stand.dae</filename><scale>1</scale></skin><animation name="walking"><filename>walk.dae</filename><scale>1</scale><interpolate_x>true</interpolate_x></animation><plugin filename="/home/lintao/projects/ped_sim_ws/src/gym_ped_sim/actor_plugin/lib/libactorplugin_ros.so" name="None"><speed>0.5</speed><target>3 3 1.02</target><ignore_obstacles><model>caffe</model><model>ground_plane</model></ignore_obstacles></plugin></actor> -->
+        <model name='obs_goal0'>
+            <pose>10 10 0.005 0 0 0</pose>
+            <link name='link'>
+                <inertial>
+                    <mass>1</mass>
+                </inertial>
+                <visual name='visual'>
+                    <geometry>
+                        <cylinder>
+                            <radius>0.05</radius>
+                            <length>0.01</length>
+                        </cylinder>
+                    </geometry>
+                    <material>
+                        <script>
+                            <uri>file://media/materials/scripts/gazebo.material</uri>
+                            <name>Gazebo/Black</name>
+                        </script>
+                    </material>
+                </visual>
+                <velocity_decay>
+                    <linear>0</linear>
+                    <angular>0</angular>
+                </velocity_decay>
+                <self_collide>0</self_collide>
+                <kinematic>0</kinematic>
+                <gravity>0</gravity>
+            </link>
+        </model>
+        <model name='obs_goal1'>
+            <pose>10 8 0.005 0 0 0</pose>
+            <link name='link'>
+                <inertial>
+                    <mass>1</mass>
+                </inertial>
+                <visual name='visual'>
+                    <geometry>
+                        <cylinder>
+                            <radius>0.05</radius>
+                            <length>0.01</length>
+                        </cylinder>
+                    </geometry>
+                    <material>
+                        <script>
+                            <uri>file://media/materials/scripts/gazebo.material</uri>
+                            <name>Gazebo/Black</name>
+                        </script>
+                    </material>
+                </visual>
+                <velocity_decay>
+                    <linear>0</linear>
+                    <angular>0</angular>
+                </velocity_decay>
+                <self_collide>0</self_collide>
+                <kinematic>0</kinematic>
+                <gravity>0</gravity>
+            </link>
+        </model>
+        <model name='obs_goal2'>
+            <pose>10 6 0.005 0 0 0</pose>
+            <link name='link'>
+                <inertial>
+                    <mass>1</mass>
+                </inertial>
+                <visual name='visual'>
+                    <geometry>
+                        <cylinder>
+                            <radius>0.05</radius>
+                            <length>0.01</length>
+                        </cylinder>
+                    </geometry>
+                    <material>
+                        <script>
+                            <uri>file://media/materials/scripts/gazebo.material</uri>
+                            <name>Gazebo/Black</name>
+                        </script>
+                    </material>
+                </visual>
+                <velocity_decay>
+                    <linear>0</linear>
+                    <angular>0</angular>
+                </velocity_decay>
+                <self_collide>0</self_collide>
+                <kinematic>0</kinematic>
+                <gravity>0</gravity>
+            </link>
+        </model>
+        <model name='obs_goal3'>
+            <pose>10 4 0.005 0 0 0</pose>
+            <link name='link'>
+                <inertial>
+                    <mass>1</mass>
+                </inertial>
+                <visual name='visual'>
+                    <geometry>
+                        <cylinder>
+                            <radius>0.05</radius>
+                            <length>0.01</length>
+                        </cylinder>
+                    </geometry>
+                    <material>
+                        <script>
+                            <uri>file://media/materials/scripts/gazebo.material</uri>
+                            <name>Gazebo/Black</name>
+                        </script>
+                    </material>
+                </visual>
+                <velocity_decay>
+                    <linear>0</linear>
+                    <angular>0</angular>
+                </velocity_decay>
+                <self_collide>0</self_collide>
+                <kinematic>0</kinematic>
+                <gravity>0</gravity>
+            </link>
+        </model>
+        <model name='obs_goal4'>
+            <pose>10 2 0.005 0 0 0</pose>
+            <link name='link'>
+                <inertial>
+                    <mass>1</mass>
+                </inertial>
+                <visual name='visual'>
+                    <geometry>
+                        <cylinder>
+                            <radius>0.05</radius>
+                            <length>0.01</length>
+                        </cylinder>
+                    </geometry>
+                    <material>
+                        <script>
+                            <uri>file://media/materials/scripts/gazebo.material</uri>
+                            <name>Gazebo/Black</name>
+                        </script>
+                    </material>
+                </visual>
+                <velocity_decay>
+                    <linear>0</linear>
+                    <angular>0</angular>
+                </velocity_decay>
+                <self_collide>0</self_collide>
+                <kinematic>0</kinematic>
+                <gravity>0</gravity>
+            </link>
+        </model>
+        <model name='obs_goal5'>
+            <pose>10 -2 0.005 0 0 0</pose>
+            <link name='link'>
+                <inertial>
+                    <mass>1</mass>
+                </inertial>
+                <visual name='visual'>
+                    <geometry>
+                        <cylinder>
+                            <radius>0.05</radius>
+                            <length>0.01</length>
+                        </cylinder>
+                    </geometry>
+                    <material>
+                        <script>
+                            <uri>file://media/materials/scripts/gazebo.material</uri>
+                            <name>Gazebo/Black</name>
+                        </script>
+                    </material>
+                </visual>
+                <velocity_decay>
+                    <linear>0</linear>
+                    <angular>0</angular>
+                </velocity_decay>
+                <self_collide>0</self_collide>
+                <kinematic>0</kinematic>
+                <gravity>0</gravity>
+            </link>
+        </model>
+        <model name='obs_goal6'>
+            <pose>10 -4 0.005 0 0 0</pose>
+            <link name='link'>
+                <inertial>
+                    <mass>1</mass>
+                </inertial>
+                <visual name='visual'>
+                    <geometry>
+                        <cylinder>
+                            <radius>0.05</radius>
+                            <length>0.01</length>
+                        </cylinder>
+                    </geometry>
+                    <material>
+                        <script>
+                            <uri>file://media/materials/scripts/gazebo.material</uri>
+                            <name>Gazebo/Black</name>
+                        </script>
+                    </material>
+                </visual>
+                <velocity_decay>
+                    <linear>0</linear>
+                    <angular>0</angular>
+                </velocity_decay>
+                <self_collide>0</self_collide>
+                <kinematic>0</kinematic>
+                <gravity>0</gravity>
+            </link>
+        </model>
+        <model name='obs_goal7'>
+            <pose>10 -6 0.005 0 0 0</pose>
+            <link name='link'>
+                <inertial>
+                    <mass>1</mass>
+                </inertial>
+                <visual name='visual'>
+                    <geometry>
+                        <cylinder>
+                            <radius>0.05</radius>
+                            <length>0.01</length>
+                        </cylinder>
+                    </geometry>
+                    <material>
+                        <script>
+                            <uri>file://media/materials/scripts/gazebo.material</uri>
+                            <name>Gazebo/Black</name>
+                        </script>
+                    </material>
+                </visual>
+                <velocity_decay>
+                    <linear>0</linear>
+                    <angular>0</angular>
+                </velocity_decay>
+                <self_collide>0</self_collide>
+                <kinematic>0</kinematic>
+                <gravity>0</gravity>
+            </link>
+        </model>
+        <model name='obs_goal8'>
+            <pose>10 -8 0.005 0 0 0</pose>
+            <link name='link'>
+                <inertial>
+                    <mass>1</mass>
+                </inertial>
+                <visual name='visual'>
+                    <geometry>
+                        <cylinder>
+                            <radius>0.05</radius>
+                            <length>0.01</length>
+                        </cylinder>
+                    </geometry>
+                    <material>
+                        <script>
+                            <uri>file://media/materials/scripts/gazebo.material</uri>
+                            <name>Gazebo/Black</name>
+                        </script>
+                    </material>
+                </visual>
+                <velocity_decay>
+                    <linear>0</linear>
+                    <angular>0</angular>
+                </velocity_decay>
+                <self_collide>0</self_collide>
+                <kinematic>0</kinematic>
+                <gravity>0</gravity>
+            </link>
+        </model>
+        <model name='obs_goal9'>
+            <pose>10 -10 0.005 0 0 0</pose>
+            <link name='link'>
+                <inertial>
+                    <mass>1</mass>
+                </inertial>
+                <visual name='visual'>
+                    <geometry>
+                        <cylinder>
+                            <radius>0.05</radius>
+                            <length>0.01</length>
+                        </cylinder>
+                    </geometry>
+                    <material>
+                        <script>
+                            <uri>file://media/materials/scripts/gazebo.material</uri>
+                            <name>Gazebo/Black</name>
+                        </script>
+                    </material>
+                </visual>
+                <velocity_decay>
+                    <linear>0</linear>
+                    <angular>0</angular>
+                </velocity_decay>
+                <self_collide>0</self_collide>
+                <kinematic>0</kinematic>
+                <gravity>0</gravity>
+            </link>
+        </model>
     </world>
 </sdf>
