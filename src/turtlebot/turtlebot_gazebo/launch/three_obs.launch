@@ -13,36 +13,36 @@
   <arg name="ip" value="-x 0 -y 0 -z 0" />
 
   <arg name="ons0" value="obs0" />
-  <arg name="oip0" value="-x 3 -y 0 -z 0" />
+  <arg name="oip0" value="-x -10 -y 10 -z 0" />
 
   <arg name="ons1" value="obs1" />
-  <arg name="oip1" value="-x 2 -y -2 -z 0" />
+  <arg name="oip1" value="-x -10 -y 8 -z 0" />
 
   <arg name="ons2" value="obs2" />
-  <arg name="oip2" value="-x 5 -y 7 -z 0" />
+  <arg name="oip2" value="-x -10 -y 6 -z 0" />
 
   <arg name="ons3" value="obs3" />
-  <arg name="oip3" value="-x 8 -y 3 -z 0" />
+  <arg name="oip3" value="-x -10 -y 4 -z 0" />
 
   <arg name="ons4" value="obs4" />
-  <arg name="oip4" value="-x 10 -y 4 -z 0" />
+  <arg name="oip4" value="-x -10 -y 2 -z 0" />
 
   <arg name="ons5" value="obs5" />
-  <arg name="oip5" value="-x -9 -y 5 -z 0" />
+  <arg name="oip5" value="-x -10 -y -2 -z 0" />
 
   <arg name="ons6" value="obs6" />
-  <arg name="oip6" value="-x -7 -y -2 -z 0" />
+  <arg name="oip6" value="-x -10 -y -4 -z 0" />
 
   <arg name="ons7" value="obs7" />
-  <arg name="oip7" value="-x -4 -y -1 -z 0" />
+  <arg name="oip7" value="-x -10 -y -6 -z 0" />
 
   <arg name="ons8" value="obs8" />
-  <arg name="oip8" value="-x -1 -y -6 -z 0" />
+  <arg name="oip8" value="-x -10 -y -8 -z 0" />
 
   <arg name="ons9" value="obs9" />
-  <arg name="oip9" value="-x -6 -y -8 -z 0" />
+  <arg name="oip9" value="-x -10 -y -10 -z 0" />
 
-  <rosparam command="load" file="$(find turtlebot_gazebo)/param/forceFactors.yaml" />
+  <!-- <rosparam command="load" file="$(find turtlebot_gazebo)/param/forceFactors.yaml" /> -->
 
   <group ns="$(arg ns)">
   <param name="tf_prefix" value="$(arg ns)_tf" />
