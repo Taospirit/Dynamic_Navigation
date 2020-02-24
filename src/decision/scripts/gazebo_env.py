@@ -193,7 +193,7 @@ class gazebo_env():
             p_x = data.pose[i].position.x
             p_y = data.pose[i].position.y
             name = str(data.name[i])
-            if self.obs_name in name:
+            if self.obs_name in name and not self.obs_goal_name in name:
                 index = int(data.name[i][-1])
                 v_x = data.twist[i].linear.x
                 v_y = data.twist[i].linear.y
@@ -271,7 +271,7 @@ class gazebo_env():
             math.sin(r / 2) * math.sin(p / 2) * math.cos(y / 2)
         return [q0, q1, q2, q3] # [x y z w]
 
-    # reset start list & goal list for random or given list
+    # reinit start list & goal list for random or given list
     def reinit_env(self, obs_start_lis=None, obs_goal_list=None): 
         self.obs_start_list = obs_start_lis
         self.obs_goal_list = obs_goal_list
@@ -282,14 +282,13 @@ class gazebo_env():
     # reset env to begin state for start list & goal list taken
     def reset_env(self):
         assert self.obs_start_list.any() and self.obs_goal_list.any()
-        # FIXME: error happened for "if not self.obs_start_list:" when self.obs_state_list is not None
         self.set_obs_init_position()
-        self.set_obs_goal_position()
+        # self.set_obs_goal_position()
 
     def set_obs_init_position(self):
         obs_num = len(self.gazebo_obs_states)
         # get init position
-        if not self.obs_start_list:
+        if self.obs_start_list is None:
             self.obs_start_list = self._get_random_position(obs_num)
         # set init position
         # rospy.logdebug("reset obs init position!")
@@ -298,8 +297,8 @@ class gazebo_env():
 
     def set_obs_goal_position(self):
         obs_num = len(self.gazebo_obs_states)
-        assert self.obs_start_list.any() # assert start list not None
-        if not self.obs_goal_list:
+        assert self.obs_start_list.any() # assert start_list is not None
+        if self.obs_goal_list is None:
             while True:  # keep the goal point is not too close to start point for obs
                 done = True
                 self.obs_goal_list = self._get_random_position(obs_num)
@@ -329,7 +328,7 @@ class gazebo_env():
                 for i in range(obs_num * 2):
                     dist_obs = math.hypot(goal_point[0] - pose_list[i][0], goal_point[1] - pose_list[i][1])
                     dist_agent = math.hypot(goal_point[0]-self.agent_position['x'], goal_point[0] - self.agent_position['y'])
-                    if dist_obs < 1 or dist_agent < 5:
+                    if dist_obs < 1 or dist_agent < 7:
                         done = False
                         break
                 if done:
