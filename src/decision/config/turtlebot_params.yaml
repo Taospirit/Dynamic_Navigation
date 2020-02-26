@@ -1,8 +1,8 @@
 topics:
-    odom: '/agent/odom'
+    odom: '/agent0/odom'
     laser_scan: '/scan'
-    rgb_image: '/agent/camera/rgb/image_raw'
-    agent_cmd: '/agent/cmd_vel'
+    rgb_image: '/agent0/camera/rgb/image_raw'
+    agent_cmd: '/agent0/cmd_vel'
     gazebo_states: '/gazebo/model_states'
     gazebo_set: '/gazebo/set_model_state'
     
