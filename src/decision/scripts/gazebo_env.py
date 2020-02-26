@@ -40,11 +40,16 @@ class gazebo_env():
         self.obs_goal_name = 'obs_goal'
         self.agent_goal_name = "agent_goal"
         self.agent_goal = {'x':10, 'y':10}
-        self.agent_position = {'x':0, 'y':0}
-        self.gazebo_obs_states = [{'x':0, 'y':0, 'vx':0, 'vy':0, 'yaw':0}]
+        self.agent_pose = {'x':0, 'y':0, 'v':0, 'w':0, 't':0}
+        self.gazebo_obs_states = [{'x':0, 'y':0, 'v':0, 'w':0, 't':0} for _ in range(10)]
         self.obs_start_list = None
         self.obs_goal_list = None
         self.agent_point_set = None
+
+        self.start_default_list = [[-16, y, 0] for y in range(-10, 11, 2) if y != 0]
+        self.goal_default_list = [[16, y, 0] for y in range(-10, 11, 2) if y != 0]
+        self.agent_start_default = [0, 0]
+        self.agent_goal_default = [5, 0]
 
         self.bridge = CvBridge()
         self.odom, self.rgb_image_raw, self.laser_scan_raw = None, None, None
@@ -55,9 +60,10 @@ class gazebo_env():
         self.actions = [[0.5, 0.5], [0.5, 0.2], [0.5, 0.0],
                         [0.5, -0.2], [0.5, -0.5], [0.2, 0.5],
                         [0.2, 0.0], [0.2, -0.5], [0.0, -0.5],
-                        [0.0, 0.0], [0.0, 0.5]]
+                        [0.0, 0.0], [0.0, 0.2]]
         self.n_actions = len(self.actions)
         self.goal_dist_last, self.goal_dist = 0, 0
+
         self.euclidean_distance = lambda p1, p2: math.hypot(p1['x'] - p2['x'], p1['y'] - p2['y'])
         
         self.laser_sacn_clip = rospy.get_param("/dist/laser_sacn_clip")
@@ -71,7 +77,6 @@ class gazebo_env():
         self.num_stack_frame = rospy.get_param("/params/num_stack_frame")
         self.reward_near_goal = rospy.get_param("/params/reward_near_goal")
         self.reward_near_obs = rospy.get_param("/params/reward_near_obs")
-        # self.store_data_size = self.num_sikp_frame * self.num_stack_frame
 
         odom_ = rospy.get_param('/topics/odom')
         laser_ = rospy.get_param('/topics/laser_scan')
@@ -79,7 +84,6 @@ class gazebo_env():
         gazebo_states_ = rospy.get_param('/topics/gazebo_states')
         rgb_image_ = rospy.get_param('/topics/rgb_image')
         gazebo_set_ = rospy.get_param('/topics/gazebo_set')
-
         self._check_all_sensors_ready(odom_, laser_, rgb_image_, gazebo_states_)
         rospy.Subscriber(odom_, Odometry, self._odom_callback)
         rospy.Subscriber(laser_, LaserScan, self._laser_callback)
@@ -94,6 +98,7 @@ class gazebo_env():
         self.cmd_vel_last = {'v':0, 'w':0}
         self.agent_state_ = ModelState()
         self.obs_state_ = ModelState()
+        self.planner = APFM()
 
         self.action = [0, 0] # init action
         self.action_done = False
@@ -103,10 +108,10 @@ class gazebo_env():
         # add_thread.start()
         # rospy.spin()
 
-    def thread_job(self):
-        print('start spin!')
-        while not rospy.is_shutdown():
-            rospy.spin()
+    # def thread_job(self):
+    #     print('start spin!')
+    #     while not rospy.is_shutdown():
+    #         rospy.spin()
 
     #region check_topic
     def _check_all_sensors_ready(self, odom, scan, image, gazebo):
@@ -162,8 +167,7 @@ class gazebo_env():
         return self.gazebo_state_info
     #endregion
 
-
-    #region topic_callback
+    #region topic_callback & publisher
     def _odom_callback(self, data):
         self.odom = data
 
@@ -186,70 +190,49 @@ class gazebo_env():
 
     def _gazebo_states_callback(self, data):
         self.gazebo_state_info = data
-        # TODO: 逻辑欠妥
-        self.gazebo_obs_states = [{'x':0, 'y':0, 'vx':0, 'vy':0, 'yaw':0} for name in data.name if self.obs_name in name and not self.obs_goal_name in name]
-
+        self.gazebo_obs_states = [{'x':0, 'y':0, 'v':0, 'w':0, 't':0} for name in data.name if name[:-1] == self.obs_name]
         for i in range(len(data.name)):
-            p_x = data.pose[i].position.x
-            p_y = data.pose[i].position.y
+            x = data.pose[i].position.x
+            y = data.pose[i].position.y
+            v = data.twist[i].linear.x
+            w = data.twist[i].angular.z
+            t = math.degrees(self.euler_from_quaternion(data.pose[i])[2]) 
             name = str(data.name[i])
-            if self.obs_name in name and not self.obs_goal_name in name:
+            if name[:-1] == self.obs_name:
                 index = int(data.name[i][-1])
-                v_x = data.twist[i].linear.x
-                v_y = data.twist[i].linear.y
-                self.gazebo_obs_states[index]['x'] = p_x
-                self.gazebo_obs_states[index]['y'] = p_y
-                self.gazebo_obs_states[index]['vx'] = v_x
-                self.gazebo_obs_states[index]['vy'] = v_y
-                self.gazebo_obs_states[index]['yaw'] = self.euler_from_quaternion(data.pose[i])[2]
+                self.gazebo_obs_states[index]['x'] = x
+                self.gazebo_obs_states[index]['y'] = y
+                self.gazebo_obs_states[index]['v'] = v
+                self.gazebo_obs_states[index]['w'] = w
+                self.gazebo_obs_states[index]['t'] = t
+            elif name[:-1] == self.agent_name:
+                self.agent_pose['x'] = x
+                self.agent_pose['y'] = y
+                self.agent_pose['v'] = v
+                self.agent_pose['w'] = w
+                self.agent_pose['t'] = t
+            elif name[:-1] == self.agent_goal_name:
+                self.agent_goal['x'] = x
+                self.agent_goal['y'] = y
 
-            elif name == self.agent_goal_name:
-                self.agent_goal['x'] = p_x
-                self.agent_goal['y'] = p_y
-            elif name == self.agent_name:
-                self.agent_position['x'] = p_x
-                self.agent_position['y'] = p_y
-
-        self.goal_dist = self.euclidean_distance(self.agent_position, self.agent_goal)
+        self.goal_dist = self.euclidean_distance(self.agent_pose, self.agent_goal)
         # print ('state_x is {}'.format(self.gazebo_obs_states[-1]['x']))
-        # self.pub_gazebo_states()
 
         # info test
         # print ('========')
         # for item in self.gazebo_obs_states:
         #     print ('index {}, x={:.2f}, y={:.2f}'.format(self.gazebo_obs_states.index(item), item['x'], item['y']))
         # print(self.agent_goal)
-        # print(self.agent_position)
-    #endregion
+        # print(self.agent_pose)
 
     def gazebo_pub(self, state):
         self.pub_gazebo.publish(state)
 
     def agent_pub(self, cmd_vel):
         self.pub_agent.publish(cmd_vel)
+    #endregion topic_callback & publisher
 
-    def pub_gazebo_states(self):
-        self.obs_state_.model_name = 'obs0'
-        self.obs_state_.reference_frame = 'world'
-        # self.obs_state_.twist.linear.x = 5
-        # self.obs_state_.twist.linear.y = 5
-
-        self.obs_state_.pose.position.x += 1
-        self.obs_state_.pose.position.y = 0
-        self.obs_state_.pose.position.z = 0
-        if self.gazebo_obs_states[0]['x'] > 8:
-            self.obs_state_.pose.position.x = 2
-
-        # self.agent_state_.model_name = self.agent_name
-        # self.agent_state_.pose.position.x = 0
-        # self.agent_state_.pose.position.y = 0
-        # self.agent_state_.twist.linear.x = 0
-        # self.agent_state_.twist.angular.z = 0
-        # self.pub_state.publish(self.obs_state_)
-
-        print ('pub state position ')
-        time.sleep(0.2)
-
+    #region math function
     def euler_from_quaternion(self, pose):
         x = pose.orientation.x 
         y = pose.orientation.y 
@@ -270,74 +253,95 @@ class gazebo_env():
         q2 = math.cos(r / 2) * math.cos(p / 2) * math.sin(y / 2) - \
             math.sin(r / 2) * math.sin(p / 2) * math.cos(y / 2)
         return [q0, q1, q2, q3] # [x y z w]
+    #endregion math function
 
-    # reinit start list & goal list for random or given list
-    def reinit_env(self, obs_start_lis=None, obs_goal_list=None): 
-        self.obs_start_list = obs_start_lis
-        self.obs_goal_list = obs_goal_list
-        self.set_obs_init_position()
-        self.set_obs_goal_position()
-        self.set_agent_goal_point()
+    #region: env setting and function related
+    def init_default_env(self):
+        'init obs to default start_list & goal_list for given attrib'
+        self.init_env(self.start_default_list, self.goal_default_list, self.agent_goal_default)
 
-    # reset env to begin state for start list & goal list taken
+    def init_env(self, obs_start_list, obs_goal_list, goal_point):
+        '''init new env: init obs start poses & goal poses for given list
+        @obs_start_list: given list for obs start
+        @obs_goal_list: given list for obs goal
+        @goal_point: goal point (x, y) for agent
+        '''
+        assert len(obs_start_list) == len(obs_goal_list)
+        assert not len(obs_start_list) > len(self.gazebo_obs_states)
+        self.set_obs_init_pose(obs_start_list)
+        self.set_obs_goal_pose(obs_goal_list)
+        self.set_agent_goal_pose(goal_point)
+
+    def init_env_random(self, num=10):
+        'init new env: init random obs for given number, default value is 10'
+        # print (len(self.gazebo_obs_states))
+        assert not num > len(self.gazebo_obs_states)
+        self.set_obs_init_pose(num=num)
+        self.set_obs_goal_pose(num=num)
+        # self.set_agent_goal_pose()
+
     def reset_env(self):
-        assert self.obs_start_list.any() and self.obs_goal_list.any()
-        self.set_obs_init_position()
-        # self.set_obs_goal_position()
+        'reset env to begin state for start_list & goal_list taken'
+        assert self.obs_start_list is not None and self.obs_goal_list is not None
+        self.set_obs_init_pose(self.obs_start_list)
+        # self.set_obs_goal_pose(self.obs_goal_list)
 
-    def set_obs_init_position(self):
-        obs_num = len(self.gazebo_obs_states)
+    def set_obs_init_pose(self, obs_start_list=None, num=10):
         # get init position
-        if self.obs_start_list is None:
-            self.obs_start_list = self._get_random_position(obs_num)
+        if obs_start_list is None:
+            obs_start_list = self._get_random_pose(num)
+
+        obs_start_list.extend(self.start_default_list[len(obs_start_list):])
         # set init position
         # rospy.logdebug("reset obs init position!")
-        print ("reset obs init position!")
-        self._pub_gazebo_states(self.obs_name, self.obs_start_list, obs_num)
+        self.obs_start_list = obs_start_list
+        print ("set obs init position!")
+        self._set_gazebo_states(self.obs_name, self.obs_start_list)
 
-    def set_obs_goal_position(self):
-        obs_num = len(self.gazebo_obs_states)
-        assert self.obs_start_list.any() # assert start_list is not None
-        if self.obs_goal_list is None:
+    def set_obs_goal_pose(self, obs_goal_list=None, num=10):
+        assert self.obs_start_list is not None
+        if obs_goal_list is None:
             while True:  # keep the goal point is not too close to start point for obs
                 done = True
-                self.obs_goal_list = self._get_random_position(obs_num)
-                for i in range(obs_num):
+                obs_goal_list = self._get_random_pose(num)
+                for i in range(num):
                     start_x = self.obs_start_list[i][0]
                     start_y = self.obs_start_list[i][1]
-                    goal_x = self.obs_goal_list[i][0]
-                    goal_y = self.obs_goal_list[i][1]
-                    dist_star_to_goal = math.hypot(start_x - goal_x, start_y - goal_y)
-                    if dist_star_to_goal < 2:
+                    goal_x = obs_goal_list[i][0]
+                    goal_y = obs_goal_list[i][1]
+                    dist_start2goal = math.hypot(start_x - goal_x, start_y - goal_y)
+                    if dist_start2goal < 2:
                         done = False
                         break
                 if done:
                     break
-        # rospy.logdebug("reset obs goal position!")
-        print ("reset obs goal position!")
-        self._pub_gazebo_states(self.obs_goal_name, self.obs_goal_list, obs_num)
 
-    def set_agent_goal_point(self, goal_point=None):
-        obs_num = len(self.gazebo_obs_states)
-        if not goal_point:
+        obs_goal_list.extend(self.goal_default_list[len(obs_goal_list):])
+        # rospy.logdebug("reset obs goal position!")
+        self.obs_goal_list = obs_goal_list
+        print ("set obs goal position!")
+        self._set_gazebo_states(self.obs_goal_name, self.obs_goal_list)
+
+    def set_agent_goal_pose(self, goal_point=None):
+        if goal_point is None:
             while True:
                 done = True
-                point = np.random.uniform(-10, 10, 2)
-                goal_point = np.append(point, math.pi) # set theta = pi
+                goal_point = np.random.uniform(-10, 10, 2)                
                 pose_list = np.vstack((self.obs_start_list, self.obs_goal_list))
-                for i in range(obs_num * 2):
-                    dist_obs = math.hypot(goal_point[0] - pose_list[i][0], goal_point[1] - pose_list[i][1])
-                    dist_agent = math.hypot(goal_point[0]-self.agent_position['x'], goal_point[0] - self.agent_position['y'])
+                for pose in pose_list:
+                    dist_obs = math.hypot(goal_point[0] - pose[0], goal_point[1] - pose[1])
+                    dist_agent = math.hypot(goal_point[0] - self.agent_pose['x'], goal_point[0] - self.agent_pose['y'])
                     if dist_obs < 1 or dist_agent < 7:
                         done = False
                         break
                 if done:
                     break
+        goal_pose = list(np.append(goal_point, math.pi)) # set theta to math.pi
         # rospy.logdebug("reset agent goal position!")
-        print ("reset agent goal position!")
-        self._pub_gazebo_states(self.agent_goal_name, [goal_point], 1)
+        print ("set agent goal position!")
+        self._set_gazebo_states(self.agent_goal_name, [goal_pose])
 
-    def _get_random_position(self, num, width=10, safe_dist=2):
+    def _get_random_pose(self, num, width=10, safe_dist=2):
         while True:
             x_list = np.random.uniform(-width, width, num)
             y_list = np.random.uniform(-width, width, num)
@@ -345,53 +349,109 @@ class gazebo_env():
             for i in range(num):
                 for j in range(i+1, num):
                     dist_obs = math.hypot(x_list[i]-x_list[j], y_list[i]-y_list[j])
-                    dist_agent = math.hypot(x_list[j]-self.agent_position['x'], y_list[j] - self.agent_position['y'])
+                    dist_agent = math.hypot(x_list[j]-self.agent_pose['x'], y_list[j] - self.agent_pose['y'])
                     if dist_obs < safe_dist or dist_agent < safe_dist:
                         done = False
                         break
                 if not done:
                     break
             if done:
-                theta_list = np.random.uniform(-math.pi, math.pi, num)
-                return np.dstack((x_list, y_list, theta_list))[0]
+                theta_list = np.random.uniform(-180, 180, num)
+                return list(np.dstack((x_list, y_list, theta_list))[0])
 
-    def _pub_gazebo_states(self, gazebo_state_name, pose_list, num):
-        theta_list = [item[2] for item in pose_list]
-        quat_list = [self.quaternion_from_euler(y) for y in theta_list]
-        for i in range(num):
-            self.obs_state_.model_name = gazebo_state_name + str(i)
+    def _set_gazebo_states(self, gazebo_state_name, pose_list, index_list=None):
+        # pose_list = [[p1_x, p2_y, yaw1], [p2_x, p2_y, yaw2], [p3_x, p3_y, yaw3], ...]
+        # print (pose_list)
+        theta_list = [pose[2] for pose in pose_list]
+        quat_list = [self.quaternion_from_euler(math.radians(theta)) for theta in theta_list]
+        model_state = ModelState()
+
+        pub_index_list = list(range(len(pose_list)))
+        if index_list is not None:
+            assert len(set(index_list)) == len(pose_list)
+            for index in index_list:
+                assert index < len(self.gazebo_obs_states)
+            pub_index_list = index_list
+
+        for i in pub_index_list:
+            model_state.model_name = gazebo_state_name + str(i)
             # print ('====model name is {}===='.format(gazebo_state_name + str(i)))
-            self.obs_state_.pose.position.x = pose_list[i][0]
-            self.obs_state_.pose.position.y = pose_list[i][1]
+            model_state.pose.position.x = pose_list[i][0]
+            model_state.pose.position.y = pose_list[i][1]
             # print ('x is {:.2f}, y is {:.2f}'.format(pose_list[i][0], pose_list[i][1]))
-            self.obs_state_.pose.orientation.x = quat_list[i][0]
-            self.obs_state_.pose.orientation.y = quat_list[i][1]
-            self.obs_state_.pose.orientation.z = quat_list[i][2]
-            self.obs_state_.pose.orientation.w = quat_list[i][3]
-            self.gazebo_pub(self.obs_state_)
+            model_state.pose.orientation.x = quat_list[i][0]
+            model_state.pose.orientation.y = quat_list[i][1]
+            model_state.pose.orientation.z = quat_list[i][2]
+            model_state.pose.orientation.w = quat_list[i][3]
+            # print ('theta is {:.2f}'.format(theta_list[i]))
+            model_state.twist.linear.x = 0
+            model_state.twist.angular.z = 0
+            self.gazebo_pub(model_state)
+
             # print ('reset obs{} / '.format(i))
-            time.sleep(0.01)
+            # while True:
+            #     self.gazebo_pub(self.obs_state_)
+            #     if self._at_pose(self.obs_state_):
+            #         break
+            time.sleep(0.02)
+
+        # for i in range(pub_num):
+            # self.obs_state_.model_name = gazebo_state_name + str(i)
+            # # print ('====model name is {}===='.format(gazebo_state_name + str(i)))
+            # self.obs_state_.pose.position.x = pose_list[i][0]
+            # self.obs_state_.pose.position.y = pose_list[i][1]
+            # # print ('x is {:.2f}, y is {:.2f}'.format(pose_list[i][0], pose_list[i][1]))
+            # self.obs_state_.pose.orientation.x = quat_list[i][0]
+            # self.obs_state_.pose.orientation.y = quat_list[i][1]
+            # self.obs_state_.pose.orientation.z = quat_list[i][2]
+            # self.obs_state_.pose.orientation.w = quat_list[i][3]
+            # self.gazebo_pub(self.obs_state_)
+            #  time.sleep(0.02)
+            
+    def _at_pose(self, Model):
+        data = self.gazebo_state_info
+        for i in range(len(data.name)):
+            if data.name[i] == Model.model_name:
+                p_x = data.pose[i].position.x
+                p_y = data.pose[i].position.y
+                m_x = Model.pose.position.x
+                m_y = Model.pose.position.y
+                if (p_x - m_x) > 0.1 or (p_y - m_y) > 0.1:
+                    return False
+                return True
+
+    def obs_planner_pub(self):
+        obs_num = len([obs for obs in self.obs_start_list if -10 < obs[0] < 10])
+        for i in range(obs_num):
+            topic = '/' + self.obs_name + str(i) + '/cmd_vel'
+            pub = rospy.Publisher(topic, Twist, queue_size=1)
+
+            self_pose = self.gazebo_obs_states[i]
+            goal_pose = {'x':self.obs_goal_list[i][0], 'y':self.obs_goal_list[i][1]}
+            obs_pose_list = [self.agent_pose if p is self_pose else p for p in self.gazebo_obs_states]
+            self.planner.init_env(self_pose, goal_pose, obs_pose_list)
+
+            self.planner.set_krep(3)
+            self.planner.set_lim_linear(0.3)
+            self.planner.set_lim_angluar(0.5)
+            x, z = self.planner.get_cmd()
+
+            cmd_vel = Twist()
+            cmd_vel.linear.x, cmd_vel.angular.z = x, z
+            pub.publish(cmd_vel)
+
+    #endregion env setting and function related
 
     #region get_env_info
     def _get_state(self):# sensor data collection
         state_stack = []
-        
         if self.image_data_set and self.laser_data_set:
             image_stack = np.zeros((self.img_size, self.img_size, self.num_stack_frame)) # (80, 80, 4)
             laser_stack = np.zeros((self.num_stack_frame, self.laser_size)) # (4, 360)
 
             for i in range(self.num_stack_frame):
                 index = -1 - i * self.num_sikp_frame
-                # if abs(index) > len(self.image_data_set):
-                #     index = 0
-                # image_stack[:, :, -1 - i] = self.image_data_set[index]
-                
                 image_stack[:, :, -1 - i] = self.image_data_set[index if abs(index) < len(self.image_data_set) else 0]
-
-                # index = -1 - i * self.num_sikp_frame
-                # if abs(index) > len(self.laser_data_set):
-                #     index = 0
-                # laser_stack[-1 - i, :] = self.laser_data_set[index]
                 laser_stack[-1 - i, :] = self.laser_data_set[index if abs(index) < len(self.laser_data_set) else 0]
             state_stack = [image_stack, laser_stack]
         
@@ -442,7 +502,7 @@ class gazebo_env():
     def check_near_obs(self, dist_min, laser_min_set, scan_num):
         laser_min_count, laser_min, obs_dist_min = 0, 1000, 1000
         for obs in self.gazebo_obs_states:
-            obs_dist = self.euclidean_distance(self.agent_position, obs)
+            obs_dist = self.euclidean_distance(self.agent_pose, obs)
             if obs_dist < obs_dist_min:
                 obs_dist_min = obs_dist
         if obs_dist_min < dist_min:
@@ -461,51 +521,6 @@ class gazebo_env():
 
     def _set_info(self, num):
         self.info = num
-    #endregion
-
-    def reset(self): # init state and env
-        print ('=============reset_env==============')
-        self.agent_state_.model_name = self.agent_name
-        self.agent_state_.pose.position.x = 0
-        self.agent_state_.pose.position.y = 0
-        self.agent_state_.twist.linear.x = 0
-        self.agent_state_.twist.angular.z = 0
-        self.gazebo_pub(self.agent_state_)
-        # self.pub_gazebo.publish(self.agent_state_)
-        self.action_count = 0
-        # init state
-        return self._get_state()
-        # TODO-dynamic obs
-
-    def step(self, action_index, tele_input=None):
-        # rate = rospy.Rate(1)
-        self.cmd_vel.linear.x = tele_input[0] if tele_input else self.actions[action_index][0]
-        self.cmd_vel.angular.z = tele_input[-1] if tele_input else self.actions[action_index][1]
-        print ('set linear vel {}, angular vel {}, index {}'.format(self.cmd_vel.linear.x, self.cmd_vel.angular.z, action_index))
-        self.agent_pub(self.cmd_vel)
-        # self.wait_until_twist_achieved(self.cmd_vel)
-        self.action_count += 1
-        
-        start = time.time()
-        # rate.sleep()
-        end = time.time()
-        # print ('during {}'.format(end - start))
-        #XXX: to be tested
-        during = 0.2
-        # print ('wait for {} seconds'.format(during))
-        time.sleep(during)
-
-        info = self._get_info()
-        done = self._get_done()
-        if done: self.reset()
-        reward = self._get_reward()
-        state_ = self._get_state()
-
-        self.cmd_vel_last['v'] = self.cmd_vel.linear.x
-        self.cmd_vel_last['w'] = self.cmd_vel.angular.z
-        self.goal_dist_last = self.goal_dist
-
-        return state_, reward, done, info
 
     def wait_until_twist_achieved(self, cmd_vel_value, epsilon=0.15):
         linear_speed = cmd_vel_value.linear.x
@@ -534,11 +549,47 @@ class gazebo_env():
 
     def get_odom(self):
         return self.odom
+    #endregion
 
-    def env_destory(self):
-        self.cmd_vel.linear.x = 0
-        self.cmd_vel.angular.z = 0
+    def reset(self): # init state and env
+        print ('=============env_reset==============')
+        start_point = np.append(self.agent_start_default, 0)
+        self._set_gazebo_states(self.agent_name, [start_point])
+        self.reset_env()
+        self.action_count = 0
+        # init state
+        return self._get_state()
+        # TODO-dynamic obs
+
+    def step(self, action_index, tele_input=None):
+        self.obs_planner_pub()
+        # rate = rospy.Rate(1)
+        self.cmd_vel.linear.x = tele_input[0] if tele_input else self.actions[action_index][0]
+        self.cmd_vel.angular.z = tele_input[-1] if tele_input else self.actions[action_index][1]
+        # print ('set linear vel {}, angular vel {}, index {}'.format(self.cmd_vel.linear.x, self.cmd_vel.angular.z, action_index))
         self.agent_pub(self.cmd_vel)
+        # self.wait_until_twist_achieved(self.cmd_vel)
+        
+        start = time.time()
+        # rate.sleep()
+        end = time.time()
+        # print ('during {}'.format(end - start))
+        during = 0.1
+        # print ('wait for {} seconds'.format(during))
+        time.sleep(during)
+
+        self.action_count += 1
+        info = self._get_info()
+        done = self._get_done()
+        if done: self.reset()
+        reward = self._get_reward()
+        state_ = self._get_state()
+
+        self.cmd_vel_last['v'] = self.cmd_vel.linear.x
+        self.cmd_vel_last['w'] = self.cmd_vel.angular.z
+        self.goal_dist_last = self.goal_dist
+
+        return state_, reward, done, info
 
 
 def get_key():
@@ -567,9 +618,28 @@ if __name__ == "__main__":
     # env = env()
     env = gazebo_env()
     print ('---before while---')
+    env.init_default_env()
     env.reset()
+    
+    goal = [6, 0]
+
+    s1 = [[1, 6, 0]]
+    g1 = [[1, -7, 0]]
+
+    s2 = [[3, 6, 0]]
+    g2 = [[-6, -5, 0]]
+
+    s3 = [[-1, 3, 0], [5, 3, 0]]
+    g3 = [[0, -3, 0], [6, -3, 0]]
+
+    s4 = [[1, 3, 0], [6, 3, 0]]
+    g4 = [[6, -3, 0], [1, -3, 0]]
+    env.init_env(s2, g2, goal)
 
     while not rospy.is_shutdown():
+        env.step(-2)
+    #=======test APFM planner=====
+        
 
     #======test basic_logic======
     #     if env.action_count > 1000:
@@ -579,38 +649,50 @@ if __name__ == "__main__":
     #     s_, r, d, i = env.step(choose_action)
 
     #======test reward=======#
-        speed = 0.2
-        move = {'w': [speed, 0],
-                'a': [0, speed],
-                's': [-speed, 0],
-                'd': [0, -speed]}
-        r_list = []
-        action_n = 0
-        print ('===test reward, wait for tele_input===')
-        key = get_key()
-        if key in move.keys():
-            state_, reward, done, info = env.step(0, move[key])
-            action_n += 1
-            r_list.append(reward)
-            # print ('reward {:.3f}, info {}'.format(reward, info))
+        # key = get_key()
+        # speed = 0.2
+        # move = {'w': [speed, 0],
+        #         'a': [0, speed],
+        #         's': [-speed, 0],
+        #         'd': [0, -speed]}
+        # r_list = []
+        # action_n = 0
+        # print ('===test reward, wait for tele_input===')
+        # if key in move.keys():
+        #     state_, reward, done, info = env.step(0, move[key])
+        #     action_n += 1
+        #     r_list.append(reward)
+        #     # print ('reward {:.3f}, info {}'.format(reward, info))
 
-            if done:
-                r = get_totoal_reward(r_list, 0.9)
-                print ('----action_n: {}, total_reward: {:.3f}'.format(action_n, r))
-                r_list = []
-                action_n = 0
-
-        else:
-            print ('!!!stop move!!!')
-            env.step(0, [0, 0])
-
-        if key == 'r':
-            # env.set_obs_init_position()
-            env.reinit_env()
-        if key == 't':
-            env.reset_env()
-            # p = [[2, 3], [4, -6], [8, -5]]
-            # env.set_obs_init_position(p)
+        #     if done:
+        #         r = get_totoal_reward(r_list, 0.9)
+        #         print ('----action_n: {}, total_reward: {:.3f}'.format(action_n, r))
+        #         r_list = []
+        #         action_n = 0
+        # else:
+        #     print ('!!!stop move!!!')
+        #     env.step(0, [0, 0])
+    
+    #=======test env_update======#
+        # key = get_key()
+        # if key == 'r': # random set position for num, num default value is 10
+        #     print ('random init all obs, 10!')
+        #     env.init_env_random()
+        # if key == 't':
+        #     print ('random init 4 obs!')
+        #     env.init_env_random(4)
+        # if key == 'y':
+        #     print ('reset env~')
+        #     env.reset_env()
+        # if key == 'u':
+        #     print ('set given points')
+        #     obs_start = [[5, 5, 0], [7, 5, 0]]
+        #     obs_goal = [[5, -5, 0], [7, -5, 0]]
+        #     goal = [8, 0]
+        #     env.init_env(obs_start, obs_goal, goal)
+        # if key == 'm':
+        #     env.reset()
+           
     #====== test odom =======#
     #     env._check_odom_ready()
     #     odom = env.get_odom()
@@ -628,5 +710,5 @@ if __name__ == "__main__":
         # env.pub_gazebo()
         # rospy.loginfo('linear.x is {:.2f}, linear.y is {:.2f}'.format(v_x, v_y))
         # time.sleep(0.5)
-
+    print ('stop~')
     rospy.spin()
