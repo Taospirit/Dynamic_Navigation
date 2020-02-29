@@ -1,0 +1,25 @@
+<launch>
+  <arg name="robot_env" value="one_robot" />
+  <arg name="ped_env" value="four_ped" />
+  <arg name="gazebo" value="true" />
+  <arg name="rviz" value="false" />
+  <arg name="rviz_file" value="single_turtlebot" />
+
+  <rosparam command="load" file="$(find actor_services)/param/config.yaml" />
+  <param name="BASE_PKG" type="string" value="turtlebot_gazebo" />
+  <param name="BASE_WORLD" type="string" value="empty_wall" />
+  <param name="SAVE_PKG" type="string" value="decision" />
+  <param name="SAVE_WORLD" type="string" value="$(arg ped_env)" />
+  <node name="create_ped" pkg="decision" type="CreatePed.py" />
+
+  <include file="$(find turtlebot_gazebo)/launch/$(arg robot_env).launch" />
+
+  <rosparam command="load" file="$(find actor_services)/param/config.yaml" />
+  <group if="$(arg gazebo)">
+    <arg name="world_file"  default="$(find decision)/worlds/$(arg ped_env).world"/>
+    <node name="gazebo" pkg="gazebo_ros" type="gzserver" output="screen"
+        args="$(arg world_file)" />
+    <node name="gazebo_gui" pkg="gazebo_ros" type="gzclient" respawn="false" output="screen"/>
+  </group>
+
+</launch>

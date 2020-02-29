@@ -2,7 +2,7 @@
 <launch>
     <arg name="gazebo_file" value="robot_in_world" />
     <!-- <arg name="run_file" value="train" /> -->
-    <arg name="run_file" value="gazebo_env" />
+    <arg name="run_file" value="GazeboEnv" />
     
     <rosparam command="load" file="$(find decision)/config/turtlebot_params.yaml" />
 
