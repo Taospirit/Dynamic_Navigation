@@ -1,11 +1,12 @@
 <launch>
-  <arg name="base"      value="create"/> <!-- kobuki, create -->
-  <arg name="stacks"    value="circles"/>  <!-- hexagons, circles -->
-  <arg name="3d_sensor" value="asus_xtion_pro"/>  <!-- kinect, asus_xtion_pro -->
-
-  <arg name="rviz" value="false"/>
+  <arg name="base"      value="kobuki"/> <!-- kobuki, create -->
+  <arg name="stacks"    value="hexagons"/>  <!-- hexagons, circles -->
+  <arg name="3d_sensor" value="kinect"/>  <!-- kinect, asus_xtion_pro -->
+  
+  <arg name="rviz" value="true"/>
   <!-- <arg name="rviz_file" value="single_turtlebot"/> -->
   <arg name="world" value="empty" />
+  <arg name="world_file"  default="$(find turtlebot_gazebo)/worlds/empty_goal.world"/>
 
   <arg name="urdf_file" default="$(find xacro)/xacro --inorder '$(find turtlebot_description)/robots/$(arg base)_$(arg stacks)_$(arg 3d_sensor).urdf.xacro'" />  
   <param name="robot_description" command="$(arg urdf_file)" />
@@ -22,12 +23,13 @@
     <param name="use_gui" value="false"/>
   </node>
 
-  <include file="$(find turtlebot_gazebo)/launch/origin/start_world.launch">
-    <arg name="gazebo_world" value="$(arg world)" />
-  </include>
+  <node name="gazebo" pkg="gazebo_ros" type="gzserver" output="screen"
+      args="$(arg world_file)" />
+  <node name="gazebo_gui" pkg="gazebo_ros" type="gzclient" respawn="false" output="screen"/>
 
   <group if="$(arg rviz)">
     <node name="rviz" pkg="rviz" type="rviz" args="-d $(find turtlebot_description)/config/$(arg base).rviz" />
   </group>
+
 
 </launch>

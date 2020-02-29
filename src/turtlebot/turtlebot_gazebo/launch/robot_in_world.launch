@@ -12,7 +12,6 @@
   <arg name="rviz" value="false" />
   <arg name="rviz_file" value="single_turtlebot" />
 
-
   <group ns="$(arg ns)">
     <param name="tf_prefix" value="$(arg ns)_tf" />
     <include file="$(find turtlebot_gazebo)/launch/includes/$(arg robot).launch">

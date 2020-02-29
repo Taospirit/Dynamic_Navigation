@@ -1,0 +1,12 @@
+<launch>
+    <arg name="robot" value="create" />
+    <arg name="ns" value="agent0" />
+    <arg name="ip" value="-x 0 -y 0 -z 0" />
+    <group ns="$(arg ns)">
+        <param name="tf_prefix" value="$(arg ns)_tf" />
+        <include file="$(find turtlebot_gazebo)/launch/includes/$(arg robot).launch">
+            <arg name="ROBOT_NAME" value="$(arg ns)" />
+            <arg name="INIT_POSE" value="$(arg ip)" />
+        </include>
+    </group>
+</launch>

@@ -3,6 +3,7 @@
   <arg name="rviz" value="true" />
   <arg name="ROBOT_NAME" default="obs"/>
   <arg name="INIT_POSE" default="-x 0 -y 0 -z 0" />
+  <arg name="world_file"  default="$(find turtlebot_gazebo)/worlds/empty_goal.world"/>
 
   <arg name="urdf_file" default="$(find xacro)/xacro --inorder '$(find turtlebot_description)/urdf/obstacle.urdf.xacro'" />
   <param name="robot_description" command="$(arg urdf_file)" />
@@ -14,9 +15,9 @@
     <param name="publish_frequency" type="double" value="30.0" />
   </node>
 
-  <include file="$(find turtlebot_gazebo)/launch/origin/start_world.launch">
-    <arg name="gazebo_world" value="$(arg world)" />
-  </include>
+  <node name="gazebo" pkg="gazebo_ros" type="gzserver" output="screen"
+      args="$(arg world_file)" />
+  <node name="gazebo_gui" pkg="gazebo_ros" type="gzclient" respawn="false" output="screen"/>
 
   <group if="$(arg rviz)">
     <node name="rviz" pkg="rviz" type="rviz" args="-d $(find turtlebot_description)/config/obstacle.rviz" />

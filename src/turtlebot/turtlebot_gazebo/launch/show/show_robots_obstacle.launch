@@ -4,10 +4,9 @@
   <!-- <arg name="robot" value="kobuki" /> -->
   
   <arg name="world" value="empty_goal" />
-  <!-- <arg name="world" value="empty_wall" /> -->
-  <!-- <arg name="world" value="static_obs" /> -->
   <arg name="rviz" value="false" />
   <arg name="rviz_file" value="single_turtlebot" />
+  <arg name="world_file"  default="$(find turtlebot_gazebo)/worlds/$(arg world).world"/>
 
   <arg name="ns1" value="robot1" />
   <arg name="ip1" value="-x 0 -y 0 -z 0" />
@@ -41,9 +40,9 @@
     </include>
   </group>
 
-  <include file="$(find turtlebot_gazebo)/launch/origin/start_world.launch">
-    <arg name="gazebo_world" value="$(arg world)" />
-  </include>
+  <node name="gazebo" pkg="gazebo_ros" type="gzserver" output="screen"
+      args="$(arg world_file)" />
+  <node name="gazebo_gui" pkg="gazebo_ros" type="gzclient" respawn="false" output="screen"/>
 
   <group if="$(arg rviz)">
     <node pkg="rviz" type="rviz" name="rviz" args="-d $(find turtlebot_gazebo)/rviz/$(arg rviz_file).rviz" />

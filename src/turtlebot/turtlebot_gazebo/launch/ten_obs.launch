@@ -1,14 +1,6 @@
 <launch>
   <!-- kobuki, create -->
   <arg name="robot" value="create" /> 
-  <!-- <arg name="robot" value="kobuki" /> -->
-  
-  <!-- <arg name="world" value="empty_goal" /> -->
-  <arg name="world" value="empty_wall" />
-  <!-- <arg name="world" value="static_obs" /> --> 
-  <arg name="rviz" value="false" />
-  <arg name="rviz_file" value="single_turtlebot" />
-
   <arg name="ns" value="agent0" />
   <arg name="ip" value="-x 0 -y 0 -z 0" />
 
@@ -49,8 +41,7 @@
         <arg name="INIT_POSE" value="$(arg ip)" />
     </include>
   </group>
-
-
+  
   <group ns="$(arg ons0)">
   <param name="tf_prefix" value="(arg ons0)_tf" />
     <include file="$(find turtlebot_gazebo)/launch/includes/obstacle.launch">
@@ -129,15 +120,6 @@
       <arg name="ROBOT_NAME" value="$(arg ons9)" />
       <arg name="INIT_POSE" value="$(arg oip9)" />
     </include>
-  </group>
-
-
-  <include file="$(find turtlebot_gazebo)/launch/origin/start_world.launch">
-    <arg name="gazebo_world" value="$(arg world)" />
-  </include>
-
-  <group if="$(arg rviz)">
-    <node pkg="rviz" type="rviz" name="rviz" args="-d $(find turtlebot_gazebo)/rviz/$(arg rviz_file).rviz" />
   </group>
 
 </launch>

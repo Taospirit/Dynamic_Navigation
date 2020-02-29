@@ -1,0 +1,21 @@
+<launch>
+    <!-- <arg name="world" value="empty_goal" /> -->
+    <arg name="robot_env" value="one_robot" />
+    <arg name="world" value="ten_goal_wall" />
+    <!-- <arg name="world" value="static_obs" /> -->
+    <arg name="gazebo" value="true" />
+    <arg name="rviz" value="false" />
+    <arg name="rviz_file" value="single_turtlebot" />
+    <arg name="world_file"  default="$(find turtlebot_gazebo)/worlds/$(arg world).world"/>
+
+    <include file="$(find turtlebot_gazebo)/launch/$(arg robot_env).launch" />
+    
+    <group if="$(arg gazebo)">
+        <node name="gazebo" pkg="gazebo_ros" type="gzserver" output="screen"
+            args="$(arg world_file)" />
+        <node name="gazebo_gui" pkg="gazebo_ros" type="gzclient" respawn="false" output="screen"/>
+    </group>
+    <group if="$(arg rviz)">
+        <node pkg="rviz" type="rviz" name="rviz" args="-d $(find turtlebot_gazebo)/rviz/$(arg rviz_file).rviz" />
+    </group>
+</launch>
