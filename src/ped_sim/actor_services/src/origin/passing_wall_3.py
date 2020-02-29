@@ -10,11 +10,11 @@ Info:
 import random
 import numpy as np
 import rospkg
+import rospy
 from lxml import etree
 from lxml.etree import Element
 from copy import deepcopy
 import yaml
-import rospy
 
 rospack = rospkg.RosPack()
 
@@ -37,27 +37,27 @@ skin_list = ["moonwalk.dae",
         "talk_b.dae",
         "walk.dae"]
 
-distance = 6
 startingPosition = dict()
 targetPosition = dict()
 speedOfActor = dict()
-startingPosition[0] = (0, distance/2)
-targetPosition[0] = (0, -distance/2)
-speedOfActor[0] = 1.2
 
-startingPosition[1] = (-distance/2, 0)
-targetPosition[1] = (distance/2, 0)
-speedOfActor[1] = 1.2
+startingPosition = {0:(-3.0,-0.5), 1:(-2.5,0.5), 2:(3.0, -0.5), 3:(2.5,0.5)}
+targetPosition = {0: (2.5,-0.5), 1:(3.0,0.5),  2:(-2.5, -0.5), 3:(-3.0,0.5)}
+speedOfActor = {0:1.0,1:0.9,2:1.1,3:1.2}
+#for item in range(4):
+#    speedOfActor[item] = 1.00
 
 
 actor_list = []
-for item in range(2):
+for item in range(3):
     actor = Element("actor", name="actor"+str(item))
 
     pose = Element("pose")
     #randomly generate position to pose text
     x = str(startingPosition[item][0])
     y = str(startingPosition[item][1])
+    rospy.set_param('TARGET_X_ACTOR_'+str(item), float(x))
+    rospy.set_param('TARGET_Y_ACTOR_'+str(item), float(y))
     pose.text = x+" "+y+" "+"1.02 0 0 0"
     actor.append(pose)
 
@@ -106,4 +106,6 @@ for item in range(2):
 
     world_.append(actor)
 
-tree_.write(actor_pkg_path+'/worlds/ped_world.world', pretty_print=True, xml_declaration=True, encoding="utf-8")
+import os
+f_name = os.path.basename(__file__).split('.')[0]
+tree_.write(actor_pkg_path+'/worlds/'+f_name+'.world', pretty_print=True, xml_declaration=True, encoding="utf-8")

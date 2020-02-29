@@ -41,8 +41,10 @@ startingPosition = dict()
 targetPosition = dict()
 speedOfActor = dict()
 
-startingPosition = {0:(-3.0,-0.5), 1:(-2.5,0.5), 2:(3.0, -0.5), 3:(2.5,0.5)}
-targetPosition = {0: (2.5,-0.5), 1:(3.0,0.5),  2:(-2.5, -0.5), 3:(-3.0,0.5)}
+#startingPosition = {0:(-3.0,-0.5), 1:(-2.5,0.5), 2:(3.0, -0.5), 3:(2.5,0.5)}
+#targetPosition = {0: (2.5,-0.5), 1:(3.0,0.5),  2:(-2.5, -0.5), 3:(-3.0,0.5)}
+startingPosition = {0:(-3.0,-0.5), 1:(3.0, -0.5), 2:(2.5,0.5)}
+targetPosition = {0: (2.5,-0.5), 1:(-2.5, -0.5), 2:(-3.0,0.5)}
 speedOfActor = {0:1.0,1:0.9,2:1.1,3:1.2}
 #for item in range(4):
 #    speedOfActor[item] = 1.00
@@ -106,4 +108,6 @@ for item in range(3):
 
     world_.append(actor)
 
-tree_.write(actor_pkg_path+'/worlds/ped_world.world', pretty_print=True, xml_declaration=True, encoding="utf-8")
+import os
+f_name = os.path.basename(__file__).split('.')[0]
+tree_.write(actor_pkg_path+'/worlds/'+f_name+'.world', pretty_print=True, xml_declaration=True, encoding="utf-8")

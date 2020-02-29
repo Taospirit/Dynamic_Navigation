@@ -37,21 +37,29 @@ skin_list = ["moonwalk.dae",
         "talk_b.dae",
         "walk.dae"]
 
-distance = 5
 startingPosition = dict()
 targetPosition = dict()
+dodgingDirection = dict()
 speedOfActor = dict()
-startingPosition[0] = (-distance/2, 0)
-targetPosition[0] = (distance/2, 0)
-speedOfActor[0] = 1.20
 
-startingPosition[1] = (distance/2, 0)
-targetPosition[1] = (-distance/2, 0)
-speedOfActor[1] = 1.20
+startingPosition[0] = (-2, 0)
+targetPosition[0] = (2, 0)
+speedOfActor[0] = 0.1
 
+startingPosition[1] = (-6, 0)
+targetPosition[1] = (6, 0)
+speedOfActor[1] = 1.2
+
+startingPosition[2] = (-3, 0)
+targetPosition[2] = (3, 0)
+speedOfActor[2] = 0.4
+
+startingPosition[3] = (-4, 0)
+targetPosition[3] = (4, 0)
+speedOfActor[3] = 0.7
 
 actor_list = []
-for item in range(2):
+for item in range(4):
     actor = Element("actor", name="actor"+str(item))
 
     pose = Element("pose")
@@ -106,4 +114,6 @@ for item in range(2):
 
     world_.append(actor)
 
-tree_.write(actor_pkg_path+'/worlds/ped_world.world', pretty_print=True, xml_declaration=True, encoding="utf-8")
+import os
+f_name = os.path.basename(__file__).split('.')[0]
+tree_.write(actor_pkg_path+'/worlds/'+f_name+'.world', pretty_print=True, xml_declaration=True, encoding="utf-8")

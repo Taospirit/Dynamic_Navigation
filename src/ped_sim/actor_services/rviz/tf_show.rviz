@@ -77,16 +77,12 @@ Visualization Manager:
       Show Names: true
       Tree:
         default_world:
-          actor0:
-            {}
+          actor0: {}
           actor1:
             odom:
-              base_footprint:
-                {}
-          actor2:
-            {}
-          actor3:
-            {}
+              base_footprint: {}
+          actor2: {}
+          actor3: {}
       Update Interval: 0
       Value: true
   Enabled: true

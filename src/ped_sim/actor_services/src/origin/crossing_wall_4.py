@@ -114,4 +114,6 @@ for item in range(4):
 
     world_.append(actor)
 
-tree_.write(actor_pkg_path+'/worlds/ped_world.world', pretty_print=True, xml_declaration=True, encoding="utf-8")
+import os
+f_name = os.path.basename(__file__).split('.')[0]
+tree_.write(actor_pkg_path+'/worlds/'+f_name+'.world', pretty_print=True, xml_declaration=True, encoding="utf-8")

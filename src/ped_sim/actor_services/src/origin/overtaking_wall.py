@@ -39,35 +39,26 @@ skin_list = ["moonwalk.dae",
 
 startingPosition = dict()
 targetPosition = dict()
+dodgingDirection = dict()
 speedOfActor = dict()
 
-startingPosition[0] = (-2.0, 0.0)
-targetPosition[0] = (2.0, 0.0)
-speedOfActor[0] = 0.8
+startingPosition[0] = (-2, 0)
+targetPosition[0] = (2, 0)
+speedOfActor[0] = 0.5
 
-startingPosition[1] = (-4.0, 0.0)
-targetPosition[1] = (4.0, 0.0)
+startingPosition[1] = (-5, 0)
+targetPosition[1] = (5, 0)
 speedOfActor[1] = 1.2
-
-startingPosition[2] = (0.0, 2.0)
-targetPosition[2] = (0.0, -2.0)
-speedOfActor[2] = 0.7
-
-startingPosition[3] = (0.0, 4.0)
-targetPosition[3] = (0.0, -4.0)
-speedOfActor[3] = 1.1
 
 
 actor_list = []
-for item in range(3):
+for item in range(2):
     actor = Element("actor", name="actor"+str(item))
 
     pose = Element("pose")
     #randomly generate position to pose text
     x = str(startingPosition[item][0])
     y = str(startingPosition[item][1])
-    rospy.set_param('TARGET_X_ACTOR_'+str(item), float(x))
-    rospy.set_param('TARGET_Y_ACTOR_'+str(item), float(y))
     pose.text = x+" "+y+" "+"1.02 0 0 0"
     actor.append(pose)
 
@@ -116,4 +107,6 @@ for item in range(3):
 
     world_.append(actor)
 
-tree_.write(actor_pkg_path+'/worlds/ped_world.world', pretty_print=True, xml_declaration=True, encoding="utf-8")
+import os
+f_name = os.path.basename(__file__).split('.')[0]
+tree_.write(actor_pkg_path+'/worlds/'+f_name+'.world', pretty_print=True, xml_declaration=True, encoding="utf-8")

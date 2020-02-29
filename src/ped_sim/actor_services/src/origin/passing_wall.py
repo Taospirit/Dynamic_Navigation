@@ -14,28 +14,17 @@ from lxml import etree
 from lxml.etree import Element
 from copy import deepcopy
 import yaml
+import rospy
 
 rospack = rospkg.RosPack()
-with open(rospack.get_path("actor_services")+"/src/multiforceFactors.yaml", 'r') as stream:
-    try:
-        factorData = yaml.load(stream)
-    except yaml.YAMLError as exc:
-        print(exc)
-
-SocialForce = factorData["SocialForceFactor"]
-DesiredForce = factorData["DesiredForceFactor"]
-ObstacleForce = factorData["ObstacleForceFactor"]
-AnimationFactor = factorData["AnimationFactor"]
-print(SocialForce)
-print(DesiredForce)
-print(ObstacleForce)
-print(AnimationFactor)
 
 plugin_pkg_path = rospack.get_path("actor_plugin")
 plugin_path = plugin_pkg_path + "/lib/libactorplugin_ros.so"
 actor_pkg_path = rospack.get_path("actor_services")
 
-tree_ = etree.parse(actor_pkg_path+'/worlds/empty.world')
+world_name = rospy.get_param("BASE_WORLD")
+
+tree_ = etree.parse(actor_pkg_path+'/worlds/'+world_name)
 world_ = tree_.getroot().getchildren()[0]
 
 skin_list = ["moonwalk.dae",
@@ -48,15 +37,27 @@ skin_list = ["moonwalk.dae",
         "talk_b.dae",
         "walk.dae"]
 
-# add speed and doghingdirection
+distance = 5
+startingPosition = dict()
+targetPosition = dict()
+speedOfActor = dict()
+startingPosition[0] = (-distance/2, 0)
+targetPosition[0] = (distance/2, 0)
+speedOfActor[0] = 1.20
+
+startingPosition[1] = (distance/2, 0)
+targetPosition[1] = (-distance/2, 0)
+speedOfActor[1] = 1.20
+
+
 actor_list = []
-for item in range(6):
+for item in range(2):
     actor = Element("actor", name="actor"+str(item))
 
     pose = Element("pose")
     #randomly generate position to pose text
-    x = str((np.random.rand()-0.5)*4)
-    y = str((np.random.rand()-0.5)*4)
+    x = str(startingPosition[item][0])
+    y = str(startingPosition[item][1])
     pose.text = x+" "+y+" "+"1.02 0 0 0"
     actor.append(pose)
 
@@ -71,7 +72,10 @@ for item in range(6):
 
     animation = Element("animation", name="walking")
     animate_fn = Element("filename")
-    animate_fn.text = "walk.dae"
+    if (item==int(rospy.get_param("TB3_WITH_ACTOR")[-1])) and (not rospy.get_param("TB3_AS_ACTOR")):
+    	animate_fn.text = "stand.dae"
+    else:
+    	animate_fn.text = "walk.dae"
     interpolate_x = Element("interpolate_x")
     interpolate_x.text = "true"
     animate_scale = Element("scale")
@@ -83,26 +87,11 @@ for item in range(6):
 
     plugin = Element("plugin", name="None", filename=plugin_path)
     speed = Element("speed")
-    speed.text = str(1.3)
-    socialForce = Element("socialForce")
-    socialForce.text = str(SocialForce)
-    desiredForce = Element("desiredForce")
-    desiredForce.text = str(DesiredForce)
-    obstacleForce = Element("obstacleForce")
-    obstacleForce.text = str(ObstacleForce)
-    dodgingRight = Element("dodgingRight")
-    dodgingRight.text = str(np.random.rand() < 0.5).lower()
+    speed.text = str(speedOfActor[item])
     target = Element("target")
-    x = str((np.random.rand()-0.5)*4)
-    y = str((np.random.rand()-0.5)*4)
+    x = str(targetPosition[item][0])
+    y = str(targetPosition[item][1])
     target.text =  x+" "+y+" "+"1.02"
-    target_weight = Element("target_weight")
-    target_weight.text = "1.5"
-    obstacle_weight = Element("obstacle_weight")
-    obstacle_weight.text = "1.5"
-    animation_factor = Element("animation_factor")
-    speed_ = str((np.random.rand()*3)+5)
-    animation_factor.text = speed_
     ignore_obstacle = Element("ignore_obstacles")
     model_cafe = Element("model")
     model_cafe.text = "caffe"
@@ -111,17 +100,12 @@ for item in range(6):
     ignore_obstacle.append(model_cafe)
     ignore_obstacle.append(model_ground_plane)
     plugin.append(speed)
-    plugin.append(socialForce)
-    plugin.append(desiredForce)
-    plugin.append(obstacleForce)
-    plugin.append(dodgingRight)
     plugin.append(target)
-    plugin.append(target_weight)
-    plugin.append(obstacle_weight)
-    plugin.append(animation_factor)
     plugin.append(ignore_obstacle)
     actor.append(plugin)
 
     world_.append(actor)
 
-tree_.write(actor_pkg_path+'/worlds/ped_world.world', pretty_print=True, xml_declaration=True, encoding="utf-8")
+import os
+f_name = os.path.basename(__file__).split('.')[0]
+tree_.write(actor_pkg_path+'/worlds/'+f_name+'.world', pretty_print=True, xml_declaration=True, encoding="utf-8")

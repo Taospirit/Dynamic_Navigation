@@ -36,9 +36,9 @@
             <uri>model://ground_plane</uri>
         </include>
         <actor name="actor0">
-            <pose>0 3.0 1.02 0 0 0</pose>
+            <pose>0.0 3.0 1.02 0 0 0</pose>
             <skin>
-                <filename>stand_up.dae</filename>
+                <filename>stand.dae</filename>
                 <scale>1</scale>
             </skin>
             <animation name="walking">
@@ -46,29 +46,9 @@
                 <scale>1</scale>
                 <interpolate_x>true</interpolate_x>
             </animation>
-            <plugin name="None" filename="/home/lintao/projects/gym_ped_sim/src/actor_plugin/lib/libactorplugin_ros.so">
+            <plugin name="None" filename="/home/lintao/projects/Dynamic_Navigation/src/ped_sim/actor_plugin/lib/libactorplugin_ros.so">
                 <speed>1.2</speed>
-                <target>0 -3.0 1.02</target>
-                <ignore_obstacles>
-                    <model>caffe</model>
-                    <model>ground_plane</model>
-                </ignore_obstacles>
-            </plugin>
-        </actor>
-        <actor name="actor1">
-            <pose>-3.0 0 1.02 0 0 0</pose>
-            <skin>
-                <filename>walk.dae</filename>
-                <scale>1</scale>
-            </skin>
-            <animation name="walking">
-                <filename>walk.dae</filename>
-                <scale>1</scale>
-                <interpolate_x>true</interpolate_x>
-            </animation>
-            <plugin name="None" filename="/home/lintao/projects/gym_ped_sim/src/actor_plugin/lib/libactorplugin_ros.so">
-                <speed>1.2</speed>
-                <target>3.0 0 1.02</target>
+                <target>0.0 -3.0 1.02</target>
                 <ignore_obstacles>
                     <model>caffe</model>
                     <model>ground_plane</model>
