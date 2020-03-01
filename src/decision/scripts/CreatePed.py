@@ -5,10 +5,9 @@ import rospy
 import rospkg
 import os
 import sys
-
 pkg_path = rospkg.RosPack().get_path("actor_services")
-path = os.path.join(pkg_path, 'src')
-sys.path.append(path)
+class_path = os.path.join(pkg_path, 'src')
+sys.path.append(class_path)
 from PedSimWorld import PedSimWorld
 
 if __name__ == "__main__":
