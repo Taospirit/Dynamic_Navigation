@@ -36,7 +36,8 @@ class GazeboEnv():
         # self.point = namedtuple('point', ['name', 'x', 'y'])
 
         self.agent_name = 'agent'
-        self.obs_name = 'obs'
+        # self.obs_name = 'obs'
+        self.obs_name = 'ped'
         self.obs_goal_name = 'obs_goal'
         self.agent_goal_name = "agent_goal"
         self.agent_goal = {'x':10, 'y':10}
@@ -392,26 +393,12 @@ class GazeboEnv():
             model_state.twist.linear.y = 0       
             model_state.twist.angular.z = 0
             self.gazebo_pub(model_state)
-
-            # print ('reset obs{} / '.format(i))
             # while True:
             #     self.gazebo_pub(self.obs_state_)
             #     if self._at_pose(self.obs_state_):
             #         break
             time.sleep(0.02)
 
-        # for i in range(pub_num):
-            # self.obs_state_.model_name = gazebo_state_name + str(i)
-            # # print ('====model name is {}===='.format(gazebo_state_name + str(i)))
-            # self.obs_state_.pose.position.x = pose_list[i][0]
-            # self.obs_state_.pose.position.y = pose_list[i][1]
-            # # print ('x is {:.2f}, y is {:.2f}'.format(pose_list[i][0], pose_list[i][1]))
-            # self.obs_state_.pose.orientation.x = quat_list[i][0]
-            # self.obs_state_.pose.orientation.y = quat_list[i][1]
-            # self.obs_state_.pose.orientation.z = quat_list[i][2]
-            # self.obs_state_.pose.orientation.w = quat_list[i][3]
-            # self.gazebo_pub(self.obs_state_)
-            #  time.sleep(0.02)
             
     def _at_pose(self, Model):
         data = self.gazebo_state_info
