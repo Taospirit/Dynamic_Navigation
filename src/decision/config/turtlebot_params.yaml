@@ -16,7 +16,7 @@ params:
 
 dist:
     laser_sacn_clip: 5.0
-    near_goal: 0.2
+    near_goal: 0.1
     near_obs: 0.7 # obs_dist_safe
     min_scan: 0.3 # min_sca
 

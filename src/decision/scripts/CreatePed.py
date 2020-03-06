@@ -14,7 +14,7 @@ if __name__ == "__main__":
     f = 'one_ped'
     s = [[1, 0]]
     g = [[7, 0]]
-    sd = [1.2]
+    sd = [1.2]      
 
     f1 = 'crossing_wall_2'
     s1 = [(-2, 0), (-5, 0)]
@@ -57,5 +57,5 @@ if __name__ == "__main__":
     sd8 = [1, 0.9, 1.1, 1.2]
 
     ped_world = PedSimWorld()
-    ped_world.set_ped_info(s3, g3, sd3)
+    ped_world.set_ped_info(s, g, sd)
     ped_world.create_ped_world()

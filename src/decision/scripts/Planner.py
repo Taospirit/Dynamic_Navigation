@@ -9,6 +9,7 @@ class BasicInfo():
         self._self_state = None
         self._goal_state = None
         self._env_states = None
+        self.verbose = False
 
     def _set_robot_state(self, x, y, v, w, t):
         return self.state(x=x, y=y, v=v, w=w, t=t)
@@ -54,9 +55,10 @@ class APFM(BasicInfo):
         super().__init__()
         self.Katt = 1.0 # 引力增益
         self.Krep = 1.0 # 斥力增益
-        self.linear_max = 0.5
-        self.angluar_max = 0.5
-        self.angluar_min = 0.1
+        self.linear_max = 1.0
+        self.linear_min = 0.5
+        self.angluar_max = 1.0
+        self.angluar_min = 0.5
         self.safe_dist = 4.0
         self.arrived_dist = 0.1
 
@@ -77,6 +79,9 @@ class APFM(BasicInfo):
     def set_linear_max(self, num):
         self.linear_max = num
 
+    def set_linear_min(self, num):
+        self.linear_min = num
+
     def set_angluar_max(self, num):
         self.angluar_max = num
 
@@ -89,9 +94,8 @@ class APFM(BasicInfo):
     def set_arrived_dist(self, num):
         self.arrived_dist = num
 
-    def limvel(self, vel, lim):
-        sign = 1 if vel > 0 else -1
-        return vel if abs(vel) < abs(lim) else sign * abs(lim)
+    def set_verbose(self, val):
+        self.verbose = bool(val)
 
     def _get_force(self):
         '''
@@ -111,7 +115,8 @@ class APFM(BasicInfo):
         delta_x = self.self_state.x - self.goal_state.x
         delta_y = self.self_state.y - self.goal_state.y
         if np.hypot(delta_x, delta_y) < self.arrived_dist:
-            print ('arrived at goal, stop at {:.2f}, {:.2f}!!'.format(delta_x, delta_y))
+            if self.verbose:
+                print ('arrived at goal, stop at {:.2f}, {:.2f}!!'.format(delta_x, delta_y))
             return 0, 0
 
         return -self.Katt * delta_x, -self.Katt * delta_y
@@ -138,9 +143,10 @@ class APFM(BasicInfo):
 
     def get_cmd(self):
         F_x, F_y = self._get_force()
-        print ('F_x is {:.2f}, F_y is {:.2f}'.format(F_x, F_y))
+        if self.verbose:
+            print ('F_x is {:.2f}, F_y is {:.2f}'.format(F_x, F_y))
         linear_norm = np.hypot(F_x, F_y)
-        cmd_linear = self.limvel(linear_norm, self.linear_max)
+        cmd_linear = np.clip(linear_norm, self.linear_min, self.linear_max)
         ###==== robot tf
         # yaw_goal = np.arctan2(F_y, F_x) # radicus
         # print ('yaw_goal degrees is {:.2f}'.format(np.degrees(yaw_goal)))
@@ -150,24 +156,23 @@ class APFM(BasicInfo):
         delta = np.arctan2(F_y, F_x) - np.radians(self.self_state.t)
         theta_norm = np.degrees(np.arctan2(np.sin(delta), np.cos(delta)))
         sign = 1 if theta_norm > 0 else -1
-        print ('theta_norm is {:.2f}'.format(theta_norm))
+        if self.verbose: 
+            print ('theta_norm is {:.2f}'.format(theta_norm))
+        
         t1 = 10
         t2 = 90
-        cmd_max = self.angluar_max
-        cmd_min = self.angluar_min
-
         if abs(theta_norm) > t2:
-            cmd_angular = cmd_max
+            cmd_angular = self.angluar_max
         elif abs(theta_norm) > t1:
-            k = (cmd_max - cmd_min) / (t2 - t1)
-            cmd_angular = k * (abs(theta_norm) - t1) + cmd_min
+            k = (self.angluar_max - self.angluar_min) / (t2 - t1)
+            cmd_angular = k * (abs(theta_norm) - t1) + self.angluar_min
         else:
             cmd_angular = 0
         cmd_angular *= sign
         # print ('linear.x is {:.2f}, angular.z is {:.2f}'.format(cmd_linear, cmd_angular))
 
-        if self.get_dist(self.self_state, self.goal_state) < 1.0 and cmd_angular != 0:
-            cmd_linear = 0
+        # if self.get_dist(self.self_state, self.goal_state) < 0.5 and cmd_angular != 0:
+        #     cmd_linear = 0
 
         return cmd_linear, cmd_angular
 
