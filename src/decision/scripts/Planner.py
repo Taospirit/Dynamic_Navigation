@@ -94,8 +94,8 @@ class APFM(BasicInfo):
     def set_arrived_dist(self, num):
         self.arrived_dist = num
 
-    def set_verbose(self, val):
-        self.verbose = bool(val)
+    def set_verbose(self, val:bool) -> bool:
+        self.verbose = val
 
     def _get_force(self):
         '''
@@ -124,6 +124,9 @@ class APFM(BasicInfo):
     def calc_repulsive_potential(self):
         F_rep_x = 0
         F_rep_y = 0
+        if self.get_dist(self.self_state, self.goal_state) < self.arrived_dist:
+            return 0, 0
+
         for i in range(self.get_obs_num()):
             f_rep_x = 0
             f_rep_y = 0
@@ -171,8 +174,8 @@ class APFM(BasicInfo):
         cmd_angular *= sign
         # print ('linear.x is {:.2f}, angular.z is {:.2f}'.format(cmd_linear, cmd_angular))
 
-        # if self.get_dist(self.self_state, self.goal_state) < 0.5 and cmd_angular != 0:
-        #     cmd_linear = 0
+        if self.get_dist(self.self_state, self.goal_state) < 1.0 and cmd_angular != 0:
+            cmd_linear = 0
 
         return cmd_linear, cmd_angular
 

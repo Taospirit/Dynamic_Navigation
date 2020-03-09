@@ -47,6 +47,8 @@ class GazeboEnv():
         self.obs_goal_list = None
         self.agent_point_set = None
 
+        self.state_type = 'None'
+
         self.start_default_list = [[-16, y, 0] for y in range(-10, 11, 2) if y != 0]
         self.goal_default_list = [[16, y, 0] for y in range(-10, 11, 2) if y != 0]
         self.agent_start_default = [0, 0]
@@ -94,8 +96,6 @@ class GazeboEnv():
         self.pub_gazebo = rospy.Publisher(gazebo_set_, ModelState, queue_size=1)
 
         self.cmd_vel = Twist()
-        # self.cmd_vel.linear.x = 0
-        # self.cmd_vel.angular.z = 0
         self.cmd_vel_last = {'v':0, 'w':0}
         self.agent_state_ = ModelState()
         self.obs_state_ = ModelState()
@@ -104,15 +104,6 @@ class GazeboEnv():
         self.action = [0, 0] # init action
         self.action_done = False
         self.action_count = 0
-
-        # add_thread = threading.Thread(target = self.thread_job)
-        # add_thread.start()
-        # rospy.spin()
-
-    # def thread_job(self):
-    #     print('start spin!')
-    #     while not rospy.is_shutdown():
-    #         rospy.spin()
 
     #region check_topic
     def _check_all_sensors_ready(self, odom, scan, image, gazebo):
@@ -263,16 +254,18 @@ class GazeboEnv():
     #region: env setting and function related
     def init_default_env(self):
         'init obs to default start_list & goal_list for given attrib'
-        self.init_env(self.start_default_list, self.goal_default_list, self.agent_goal_default)
+        self.init_env(self.agent_start_default, self.agent_goal_default, self.start_default_list, self.goal_default_list)
 
-    def init_env(self, obs_start_list, obs_goal_list, goal_point):
+    def init_env(self, start_point, goal_point, obs_start_list, obs_goal_list):
         '''init new env: init obs start poses & goal poses for given list
+        @start_point: start point (x, y) for agent
+        @goal_point: goal point (x, y) for agent
         @obs_start_list: given list for obs start
         @obs_goal_list: given list for obs goal
-        @goal_point: goal point (x, y) for agent
         '''
         assert len(obs_start_list) == len(obs_goal_list)
         assert not len(obs_start_list) > len(self.gazebo_obs_states)
+        self.set_agent_start_pose(start_point)
         self.set_obs_init_pose(obs_start_list)
         self.set_obs_goal_pose(obs_goal_list)
         self.set_agent_goal_pose(goal_point)
@@ -288,8 +281,17 @@ class GazeboEnv():
     def reset_env(self):
         'reset env to begin state for start_list & goal_list taken'
         assert self.obs_start_list is not None and self.obs_goal_list is not None
+        self.set_agent_start_pose(self.start_pose)
         self.set_obs_init_pose(self.obs_start_list)
-        # self.set_obs_goal_pose(self.obs_goal_list)
+
+    def set_agent_start_pose(self, start_point=None):
+        if start_point is None:
+            start_point = np.random.uniform(-8, 8, 2)
+        self.start_pose = list(np.append(start_point, 0)) # set theta to np.pi
+
+        if self.verbose:
+            print ("=====set agent start pose!=====")
+        self._pub_gazebo_states(self.agent_name, [self.start_pose])
 
     def set_obs_init_pose(self, obs_start_list=None, num=10):
         # get init position
@@ -301,7 +303,7 @@ class GazeboEnv():
         # rospy.logdebug("reset obs init position!")
         self.obs_start_list = obs_start_list
         if self.verbose:
-            print ("=====set obs init position!=====")
+            print ("=====set obs init pose!=====")
         self._pub_gazebo_states(self.obs_name, self.obs_start_list)
 
     def set_obs_goal_pose(self, obs_goal_list=None, num=10):
@@ -326,7 +328,7 @@ class GazeboEnv():
         # rospy.logdebug("reset obs goal position!")
         self.obs_goal_list = obs_goal_list
         if self.verbose:
-            print ("=====set obs goal position!=====")
+            print ("=====set obs goal pose!=====")
         self._pub_gazebo_states(self.obs_goal_name, self.obs_goal_list)
 
     def set_agent_goal_pose(self, goal_point=None):
@@ -343,10 +345,10 @@ class GazeboEnv():
                         break
                 if done:
                     break
-        goal_pose = list(np.append(goal_point, np.pi)) # set theta to np.pi
+        goal_pose = list(np.append(goal_point, 0)) # set theta to np.pi
         # rospy.logdebug("reset agent goal position!")
         if self.verbose:
-            print ("=====set agent goal position!=====")
+            print ("=====set agent goal pose!=====")
         self._pub_gazebo_states(self.agent_goal_name, [goal_pose])
 
     def _get_random_pose(self, num, width=10, safe_dist=2):
@@ -421,7 +423,8 @@ class GazeboEnv():
     #region get_env_info
     def _get_state(self):# sensor data collection
         state_stack = []
-        if self.image_data_set and self.laser_data_set:
+        if self.state_type == 'raw_sensor':
+            assert self.image_data_set and self.laser_data_set
             image_stack = np.zeros((self.img_size, self.img_size, self.num_stack_frame)) # (80, 80, 4)
             laser_stack = np.zeros((self.num_stack_frame, self.laser_size)) # (4, 360)
 
@@ -430,6 +433,10 @@ class GazeboEnv():
                 image_stack[:, :, -1 - i] = self.image_data_set[index if abs(index) < len(self.image_data_set) else 0]
                 laser_stack[-1 - i, :] = self.laser_data_set[index if abs(index) < len(self.laser_data_set) else 0]
             state_stack = [image_stack, laser_stack]
+
+        elif self.state_type == 'raw_env':
+            #TODO:
+            state_stack = []
         
         return state_stack
 
@@ -443,18 +450,6 @@ class GazeboEnv():
         if self.info == 2: # arrive at goal
             reward += self.reward_near_goal
         return reward
-
-    def reward_cmd_vel_change(self, rate=-0.1):
-        # print (type(self.cmd_vel_last['v']), type(self.cmd_vel.linear.x))
-        cmd_vel_reward = abs(self.cmd_vel_last['v'] - self.cmd_vel.linear.x) + abs(self.cmd_vel_last['w'] - self.cmd_vel.angular.z)
-        # print ('cmd_vel_change: {:.3f} / '.format(cmd_vel_reward))
-        return rate * cmd_vel_reward
-        
-    def reward_close_to_goal(self, rate=2):
-        delta_dist = self.goal_dist_last - self.goal_dist if self.goal_dist_last != 0 else 0
-        # print ('goal_dist: {:.3f}, goal_dist_last: {:.3f}'.format(self.goal_dist, self.goal_dist_last))
-        # print ('delta_dist: {:.3f}'.format(delta_dist))
-        return rate * delta_dist
 
     def _get_done(self):# arrived or collsiped or time_out
         self.done = False
@@ -470,6 +465,18 @@ class GazeboEnv():
         self.check_obs_goal(self.dist_near_goal)
         # print ('----info is {}'.format(self.info))
         return self.info
+
+    def reward_cmd_vel_change(self, rate=-0.1):
+        # print (type(self.cmd_vel_last['v']), type(self.cmd_vel.linear.x))
+        cmd_vel_reward = abs(self.cmd_vel_last['v'] - self.cmd_vel.linear.x) + abs(self.cmd_vel_last['w'] - self.cmd_vel.angular.z)
+        # print ('cmd_vel_change: {:.3f} / '.format(cmd_vel_reward))
+        return rate * cmd_vel_reward
+        
+    def reward_close_to_goal(self, rate=2):
+        delta_dist = self.goal_dist_last - self.goal_dist if self.goal_dist_last != 0 else 0
+        # print ('goal_dist: {:.3f}, goal_dist_last: {:.3f}'.format(self.goal_dist, self.goal_dist_last))
+        # print ('delta_dist: {:.3f}'.format(delta_dist))
+        return rate * delta_dist
 
     def check_agent_goal(self, dist_min):
         if self.goal_dist < dist_min:
@@ -541,6 +548,9 @@ class GazeboEnv():
 
     def get_odom(self):
         return self.odom
+
+    def set_verbose(self, vel:bool) -> bool:
+        self.verbose = vel
     #endregion
 
     def reset(self): # init state and env
@@ -574,7 +584,7 @@ class GazeboEnv():
         self.action_count += 1
         info = self._get_info()
         done = self._get_done()
-        if done: self.reset()
+        # if done: self.reset()
         reward = self._get_reward()
         state_ = self._get_state()
 
@@ -597,10 +607,10 @@ class GazeboEnv():
             self.planner.set_katt(1.0)
             self.planner.set_krep(50)
             self.planner.set_linear_max(2.0)
-            self.planner.set_linear_min(0.3)
+            self.planner.set_linear_min(0.5)
             self.planner.set_angluar_max(2.0)
-            self.planner.set_angluar_min(0.0)
-            self.planner.set_safe_dist(3.0)
+            self.planner.set_angluar_min(0.2)
+            self.planner.set_safe_dist(4.0)
             self.planner.set_arrived_dist(self.dist_near_goal)
         #==== robot tf
             cmd_vel.linear.x, cmd_vel.angular.z = self.planner.get_cmd()
@@ -632,13 +642,15 @@ def get_totoal_reward(r_l, gamma):
 
 if __name__ == "__main__":
     env = GazeboEnv()
+    env.set_verbose(False)
     print ('---before while---')
-    env.init_default_env()
+    # env.init_default_env()
     print ('=====befor reset=====')
-    env.reset()
+    # env.reset()
     
     goal = [10, 0]
 
+    # s1 = [[4, 4, 0]]
     s1 = [[4, 4, -90]]
     g1 = [[4, -4, 0]]
 
@@ -648,11 +660,11 @@ if __name__ == "__main__":
     s2 = [[3, 6, 0]]
     g2 = [[-6, -5, 0]]
 
-    s3 = [[5, 3, 0], [-1, 3, 0]] # 双机交叉
+    s3 = [[5, 3, 0], [-1, 3, 0]] # 双机平行
     g3 = [[6, -3, 0], [0, -3, 0]]
 
-    s4 = [[1, 3, 0], [6, 3, 0]] # 双机交叉
-    g4 = [[6, -3, 0], [1, -3, 0]]
+    s4 = [[1, 2, -45], [2, -2, 45]] # 双机交叉
+    g4 = [[5, -3, 0], [7, 4, 0]]
 
     s5 = [[-2, 6, 0]] # 斜边，过静态
     g5 = [[2, -6, 0]]
@@ -661,10 +673,14 @@ if __name__ == "__main__":
     g6 = [[-1, 5, 0], [4, 5, 0]]
 
     #=======test APFM planner=====
-    env.init_env(s1_1, g1_1, goal)
-    # env.init_env_random()
+    env.init_env([0, 0], goal, s4, g4)
+    # env.init_env_random(3)
+    state_ = env.reset()
     while not rospy.is_shutdown():
-        env.step(0, [1, 0])
+        action = [0, 0]
+        state_, reward, done, info = env.step(0, action)
+        if done:
+            state_ = env.reset()
 
     #=======test twist speed======
     # start = time.time()
