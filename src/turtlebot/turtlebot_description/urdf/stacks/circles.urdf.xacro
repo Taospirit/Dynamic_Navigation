@@ -91,7 +91,7 @@
       <collision>
         <origin xyz="0.0 0.0 0.0" rpy="0 0 0" />
         <geometry>
-          <cylinder length="0.0635" radius="0.0381"/>
+          <cylinder length="0.0635" radius="0.011"/>
         </geometry>
       </collision>
     </link>
@@ -124,7 +124,7 @@
       <collision>
         <origin xyz="0.0 0.0 0.0" rpy="0 0 0" />
         <geometry>
-          <cylinder length="0.2032" radius="0.011113"/>
+          <cylinder length="0.3832" radius="0.011"/>
         </geometry>
       </collision>
     </link>
@@ -154,9 +154,9 @@
       </visual>
 
       <collision>
-        <origin xyz="0.0 0.0 0.0" rpy="0 0 0" />
+        <origin xyz="0.0 0.0 0.04" rpy="0 0 0" />
         <geometry>
-          <cylinder length="0.008585" radius="0.001111"/>
+          <cylinder length="0.08" radius="0.011"/>
         </geometry>
       </collision>
     </link>
@@ -192,9 +192,10 @@
       </visual>
 
       <collision>
-        <origin xyz="0.0 0.0 0.0" rpy="0 0 0" />
+        <origin xyz="0.04334 0.0 0.0" rpy="0 0 0" />
         <geometry>
-          <box size="0.233502 0.314845 0.006401"/>
+          <cylinder length="0.0064" radius="0.162"/>
+          <!-- <box size="0.233502 0.314845 0.006401"/> -->
           <!-- <box size="0.0 0.0 0.0"/> -->
         </geometry>
       </collision>
@@ -230,7 +231,8 @@
       <collision>
         <origin xyz="0.0 0.0 0.0" rpy="0 0 0" />
         <geometry>
-          <box size="0.314856 0.314856 0.006401"/>
+          <cylinder length="0.0064" radius="0.162"/>
+          <!-- <box size="0.314856 0.314856 0.006401"/> -->
           <!-- <box size="0.0 0.0 0.0"/> -->
         </geometry>
       </collision>
@@ -265,14 +267,14 @@
       <collision>
         <origin xyz="0.0 0.0 0.0" rpy="0 0 0" />
         <geometry>
-          <box size="0.314856 0.314856 0.006401"/>
+          <cylinder length="0.0064" radius="0.162"/>
           <!-- <box size="0.0 0.0 0.0"/> -->
         </geometry>
       </collision>
     </link>
 
-    <turtlebot_standoff_kinect parent="plate_2_link" number="0" x_loc="-0.1024382" y_loc="0.098" z_loc="0.0032004"/>
-    <turtlebot_standoff_kinect parent="plate_2_link" number="1" x_loc="-0.1024382" y_loc="-0.098" z_loc="0.0032004"/>
+    <turtlebot_standoff_kinect parent="plate_2_link" number="0" x_loc="0.11" y_loc="0.098" z_loc="0.0032004"/>
+    <turtlebot_standoff_kinect parent="plate_2_link" number="1" x_loc="0.11" y_loc="-0.098" z_loc="0.0032004"/>
 
     <turtlebot_standoff_8in parent="standoff_2in_4_link" number="0" x_loc="0" y_loc="0" z_loc="0.05715"/>
     <turtlebot_standoff_8in parent="standoff_2in_5_link" number="1" x_loc="0" y_loc="0" z_loc="0.05715"/>
@@ -302,10 +304,11 @@
       </visual>
 
       <collision>
-        <origin xyz="0.0 0.0 0.0" rpy="0 0 0" />
+        <origin xyz="0.01316 0.0 0.0" rpy="0 0 0" />
         <geometry>
           <!-- <box size="0.288 0.315 0.006401" /> -->
-          <box size="0.01 0.01 0.01" />
+          <!-- <box size="0.01 0.01 0.01" /> -->
+          <cylinder length="0.0064" radius="0.162"/>
         </geometry>
       </collision>
     </link>

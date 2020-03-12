@@ -73,10 +73,10 @@
 			</geometry>
 			</visual>
 		
-			<collision>
+			<collision name="base_link">
 			<origin xyz="0.0 0.0 0.0308" rpy="0 0 0" />
 			<geometry>
-				<cylinder length="0.0611632" radius="0.16495"/>
+				<cylinder length="0.0611632" radius="0.17"/>
 			</geometry>
 			</collision>
 		</link>
@@ -304,8 +304,8 @@
 	  
 	  <!-- Simulation sensors -->
 		<sim_create/>
-		<sim_create_wall_sensor/>
-		<sim_create_cliff_sensors/>
+		<!-- <sim_create_wall_sensor/> -->
+		<!-- <sim_create_cliff_sensors/> -->
 		<sim_imu/>
   	</xacro:macro>
 </robot>

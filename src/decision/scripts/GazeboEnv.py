@@ -11,7 +11,7 @@ from collections import namedtuple
 # from cv_bridge import CvBridge, CvBridgeError
 from sensor_msgs.msg import LaserScan, Image
 from gazebo_msgs.srv import SetModelState
-from gazebo_msgs.msg import ModelState, ModelStates
+from gazebo_msgs.msg import ModelState, ModelStates, ContactsState
 from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
 from Planner import *
@@ -47,7 +47,7 @@ class GazeboEnv():
         self.obs_goal_list = None
         self.agent_point_set = None
 
-        self.state_type = 'None'
+        self.state_type = 'raw_sensor'
 
         self.start_default_list = [[-16, y, 0] for y in range(-10, 11, 2) if y != 0]
         self.goal_default_list = [[16, y, 0] for y in range(-10, 11, 2) if y != 0]
@@ -59,6 +59,7 @@ class GazeboEnv():
         self.image_data_set, self.laser_data_set = [], []
         self.info = 0
         self.done = False
+        self.collapsed = False
 
         self.actions = [[1.6, 1.6], [1.6, 0.8], [1.6, 0.0],
                         [1.6, -0.8], [1.6, -1.6], [0.8, 1.6],
@@ -81,17 +82,20 @@ class GazeboEnv():
         self.reward_near_goal = rospy.get_param("/params/reward_near_goal")
         self.reward_near_obs = rospy.get_param("/params/reward_near_obs")
 
+        # get topic name from param server
         odom_ = rospy.get_param('/topics/odom')
         laser_ = rospy.get_param('/topics/laser_scan')
         agent_cmd_ = rospy.get_param('/topics/agent_cmd')
         gazebo_states_ = rospy.get_param('/topics/gazebo_states')
         rgb_image_ = rospy.get_param('/topics/rgb_image')
         gazebo_set_ = rospy.get_param('/topics/gazebo_set')
+        dumper_ = '/agent0/base_bumper'
         self._check_all_sensors_ready(odom_, laser_, rgb_image_, gazebo_states_)
         rospy.Subscriber(odom_, Odometry, self._odom_callback)
         rospy.Subscriber(laser_, LaserScan, self._laser_callback)
         rospy.Subscriber(rgb_image_, Image, self._image_callback)
         rospy.Subscriber(gazebo_states_, ModelStates, self._gazebo_states_callback, queue_size=1)
+        rospy.Subscriber(dumper_, ContactsState, self._dumper_callback, queue_size=1)
         self.pub_agent = rospy.Publisher(agent_cmd_, Twist, queue_size=1)
         self.pub_gazebo = rospy.Publisher(gazebo_set_, ModelState, queue_size=1)
 
@@ -220,6 +224,16 @@ class GazeboEnv():
         #     print ('index {}, x={:.2f}, y={:.2f}'.format(self.gazebo_obs_states.index(item), item['x'], item['y']))
         # print(self.agent_goal)
         # print(self.agent_pose)
+
+    def _dumper_callback(self, data):
+        # self_collision_name = 'agent::base_footprint::base_footprint_fixed_joint_lump__base_link_collision_1'
+        contacts = data.states
+        self.collapsed = False
+        for info in contacts:
+            if 'agent' in info.collision1_name or 'agent' in info.collision2_name:
+                self.collapsed = True
+                break
+
 
     def gazebo_pub(self, state):
         self.pub_gazebo.publish(state)
@@ -461,7 +475,8 @@ class GazeboEnv():
     def _get_info(self):
         self._set_info(0)
         self.check_agent_goal(self.dist_near_goal)
-        self.check_agent_obs(self.dist_near_obs, self.dist_scan_set, 100)
+        # self.check_agent_obs(self.dist_near_obs, self.dist_scan_set, 100)
+        self.check_agent_collision()
         self.check_obs_goal(self.dist_near_goal)
         # print ('----info is {}'.format(self.info))
         return self.info
@@ -503,11 +518,16 @@ class GazeboEnv():
             print ('----!!!laser too close to the obs for {:.2f}, count {}!!!-----'.format(laser_min, laser_min_count))
             return self._set_info(1)
 
+    def check_agent_collision(self):
+        if self.collapsed:
+            print ('-----!!!robot collapsed!!!-----')
+            return self._set_info(1)
+
     def check_obs_goal(self, arrived_dist):
         obs_num = len([obs for obs in self.obs_start_list if -10 < obs[0] < 10])
+        if obs_num == 0: # for no obs test only
+            return 0
         done = True
-        if obs_num == 0:
-            done = False
         for i in range(obs_num):
             p_x = self.gazebo_obs_states[i]['x']
             p_y = self.gazebo_obs_states[i]['y']
@@ -515,6 +535,7 @@ class GazeboEnv():
             g_y = self.obs_goal_list[i][1]
             if np.hypot(p_x - g_x, p_y - g_y) > arrived_dist:
                 done = False
+                break
         if done:
             return self._set_info(3)
 
@@ -648,7 +669,7 @@ if __name__ == "__main__":
     print ('=====befor reset=====')
     # env.reset()
     
-    goal = [10, 0]
+    goal = [17, 0]
 
     # s1 = [[4, 4, 0]]
     s1 = [[4, 4, -90]]
@@ -672,12 +693,15 @@ if __name__ == "__main__":
     s6 = [[-1, -5, 0], [4, -5, 0]] # 平行， 过静态 对照
     g6 = [[-1, 5, 0], [4, 5, 0]]
 
+    s_ = [[1, 0.4, 0]]
+    g_ = [[15, 0.4, 0]]
+
     #=======test APFM planner=====
-    env.init_env([0, 0], goal, s4, g4)
+    env.init_env([0, 0], goal, s_, g_)
     # env.init_env_random(3)
     state_ = env.reset()
     while not rospy.is_shutdown():
-        action = [0, 0]
+        action = [3, 0]
         state_, reward, done, info = env.step(0, action)
         if done:
             state_ = env.reset()
