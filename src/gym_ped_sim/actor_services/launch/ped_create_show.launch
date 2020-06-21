@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<launch>
+    <rosparam command="load" file="$(find actor_services)/param/config.yaml" />
+    <arg name="save_file" value="one_ped" />
+
+    <!-- <param name="BASE_PKG" type="string" value="actor_services" /> -->
+    <param name="BASE_PKG" type="string" value="actor_services" />
+    <param name="BASE_WORLD" type="string" value="empty" />
+    <param name="SAVE_PKG" type="string" value="actor_services" />
+    <param name="SAVE_WORLD" type="string" value="$(arg save_file)" />
+    <node name="create_ped" pkg="actor_services" type="PedSimWorld.py" />
+
+    <arg name="gui" default="true"/>
+    <arg name="rviz" default="false"/>
+    <group if="$(arg rviz)">
+    	<node name="rviz" pkg="rviz" type="rviz" args="-d $(find actor_services)/rviz/tf_show.rviz"/>
+    </group>
+
+	<!-- start gazebo client -->
+    <group if="$(arg gui)">
+        <arg name="world_file"  default="$(find actor_services)/worlds/$(arg save_file).world"/>
+        <node name="gazebo" pkg="gazebo_ros" type="gzserver" output="screen"
+            args="$(arg world_file)" />
+        <node name="gazebo_gui" pkg="gazebo_ros" type="gzclient" respawn="false" output="screen"/>
+    </group>
+
+</launch>
