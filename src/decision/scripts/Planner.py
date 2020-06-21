@@ -145,6 +145,8 @@ class APFM(BasicInfo):
         return self.Krep * (1/dist - 1/self.safe_dist) * delta / dist ** 3
 
     def get_cmd(self):
+        if self.get_dist(self.self_state, self.goal_state) < 0.3:
+            return 0, 0
         F_x, F_y = self._get_force()
         if self.verbose:
             print ('F_x is {:.2f}, F_y is {:.2f}'.format(F_x, F_y))
@@ -174,7 +176,7 @@ class APFM(BasicInfo):
         cmd_angular *= sign
         # print ('linear.x is {:.2f}, angular.z is {:.2f}'.format(cmd_linear, cmd_angular))
 
-        if self.get_dist(self.self_state, self.goal_state) < 1.0 and cmd_angular != 0:
+        if self.get_dist(self.self_state, self.goal_state) < 0.8 and cmd_angular != 0:
             cmd_linear = 0
 
         return cmd_linear, cmd_angular

@@ -34,7 +34,7 @@ class DeepQNetwork:
             e_greedy_min=0.1,
             replace_target_iter=300,
             memory_size=5000,
-            batch_size=300,
+            batch_size=500,
             num_episode=50000,
             num_rate=0.5,
             # e_greedy_increment=None,
@@ -57,7 +57,7 @@ class DeepQNetwork:
         self.epsilon = e_greedy_max
         # total learning step
         self.learn_step_counter = 0
-
+        self.double_q = True
         # initialize zero memory [s, a, r, s_]
         # self.memory = np.zeros((self.memory_size, n_features * 2 + 2))
         # self.memory = np.array([])
@@ -110,7 +110,7 @@ class DeepQNetwork:
             self._train_op = tf.train.RMSPropOptimizer(self.lr).minimize(self.loss)
 
     def _net_model(self, net_input, net_name, col_name, conv_name, fc_name):
-        with tf.variable_scope(net_name):xia
+        with tf.variable_scope(net_name):
             c_names = [col_name, tf.GraphKeys.GLOBAL_VARIABLES]
             # net_input = [self.state_image, self.state_laser]
             image_data = (net_input[0] - (255.0 / 2)) / (255.0)  # normalization [80, 80, 4]
@@ -296,8 +296,13 @@ class DeepQNetwork:
         eval_act_index = [a1, a3, a7, ...]
         reward = [r1, r3, r7, ...]
         '''
+        if self.double_q:
+            max_act = np.argmax(q_eval, axis=1)
+            selected_q = q_next[batch_index, max_act]
+        else:
+            selected_q = np.max(q_next, axis=1)
         # print ('---update q_target---')
-        q_target[batch_index, eval_act_index] = reward + self.gamma * np.max(q_next, axis=1)
+        q_target[batch_index, eval_act_index] = reward + self.gamma * selected_q
 
         """
         For example in this batch I have 2 samples and 3 actions:
@@ -342,7 +347,7 @@ class DeepQNetwork:
         if self.epsilon < self.e_greedy_min:
             self.epsilon = self.e_greedy_min
         else:
-            self.epsilon = self.e_greedy_max * np.exp(-pot*self.learn_step_counter)
+            self.epsilon = self.e_greedy_max * np.exp(-pot*self.learn_step_counter/5)
         
         # self.epsilon = self.e_greedy_min if self.epsilon < self.e_greedy_min else (self.e_greedy_max * np.exp(-pot * self.num_episode))
 

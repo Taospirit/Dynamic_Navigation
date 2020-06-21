@@ -11,13 +11,13 @@ params:
     img_size: 80
     num_sikp_frame: 2
     num_stack_frame: 4
-    reward_near_goal: 1000
-    reward_near_obs: -10
+    reward_near_goal: 100
+    reward_near_obs: -50
 
 dist:
     laser_sacn_clip: 5.0
-    near_goal: 0.2
-    near_obs: 0.7 # obs_dist_safe
+    near_goal: 0.5
+    near_obs: 0.4 # obs_dist_safe
     min_scan: 0.3 # min_sca
 
 learning:
