@@ -3,7 +3,7 @@
   <!-- Microsoft Kinect / ASUS Xtion PRO Live for simulation -->
   <xacro:macro name="turtlebot_sim_laser">
 	<gazebo reference="laser_sensor_link">
-		<sensor type="ray" name="laser_sensor">
+		<sensor type="gpu_ray" name="laser_sensor">
 			<pose>0 0 0 0 0 0</pose>
 			<visualize>true</visualize>
 			<update_rate>50</update_rate>
@@ -27,7 +27,7 @@
 					<stddev>0.01</stddev>
 				</noise>
 			</ray>
-			<plugin name="gazebo_ros_head_hokuyo_controller" filename="libgazebo_ros_laser.so">
+			<plugin name="gazebo_ros_head_hokuyo_controller" filename="libgazebo_ros_gpu_laser.so">
 				<topicName>/scan</topicName>
 				<frameName>laser_sensor_link</frameName>
 			</plugin>

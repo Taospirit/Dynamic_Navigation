@@ -31,5 +31,4 @@
     <node name="rviz" pkg="rviz" type="rviz" args="-d $(find turtlebot_description)/config/$(arg base).rviz" />
   </group>
 
-
 </launch>

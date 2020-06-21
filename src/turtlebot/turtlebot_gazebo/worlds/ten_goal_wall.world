@@ -12,8 +12,8 @@
         <!-- Own physics settings to speed up simulation -->
         <physics type='ode'>
             <max_step_size>0.01</max_step_size>
-            <!-- <real_time_factor>1</real_time_factor> -->
-            <!-- <real_time_update_rate>100</real_time_update_rate> -->
+            <real_time_factor>1</real_time_factor>
+            <real_time_update_rate>100</real_time_update_rate>
             <gravity>0 0 -9.8</gravity>
         </physics>
         <model name='grey_wall0'>
@@ -196,7 +196,6 @@
             </link>
             <pose frame=''>14.9 0 0 0 0 -1.57080</pose>
         </model>
-       
         <model name='agent_goal0'>
             <pose>5 0 0 0 0 0</pose>
             <!-- <static>1</static> -->
@@ -207,8 +206,8 @@
                 <visual name='visual'>
                     <geometry>
                         <cylinder>
-                            <radius>0.25</radius>
-                            <length>0.01</length>
+                            <radius>0.5</radius>
+                            <length>0.5</length>
                         </cylinder>
                     </geometry>
                     <material>
@@ -227,10 +226,6 @@
                 <gravity>0</gravity>
             </link>
         </model>
-       
-
-
-       
         <model name='obs_goal0'>
             <pose>11 -10 0.005 0 0 0</pose>
             <link name='link'>
@@ -240,7 +235,7 @@
                 <visual name='visual'>
                     <geometry>
                         <cylinder>
-                            <radius>0.25</radius>
+                            <radius>0.5</radius>
                             <length>0.01</length>
                         </cylinder>
                     </geometry>
@@ -269,7 +264,7 @@
                 <visual name='visual'>
                     <geometry>
                         <cylinder>
-                            <radius>0.25</radius>
+                            <radius>0.5</radius>
                             <length>0.01</length>
                         </cylinder>
                     </geometry>
@@ -298,7 +293,7 @@
                 <visual name='visual'>
                     <geometry>
                         <cylinder>
-                            <radius>0.25</radius>
+                            <radius>0.5</radius>
                             <length>0.01</length>
                         </cylinder>
                     </geometry>
@@ -327,7 +322,7 @@
                 <visual name='visual'>
                     <geometry>
                         <cylinder>
-                            <radius>0.25</radius>
+                            <radius>0.5</radius>
                             <length>0.01</length>
                         </cylinder>
                     </geometry>
@@ -356,7 +351,7 @@
                 <visual name='visual'>
                     <geometry>
                         <cylinder>
-                            <radius>0.25</radius>
+                            <radius>0.5</radius>
                             <length>0.01</length>
                         </cylinder>
                     </geometry>
@@ -385,7 +380,7 @@
                 <visual name='visual'>
                     <geometry>
                         <cylinder>
-                            <radius>0.25</radius>
+                            <radius>0.5</radius>
                             <length>0.01</length>
                         </cylinder>
                     </geometry>
@@ -414,7 +409,7 @@
                 <visual name='visual'>
                     <geometry>
                         <cylinder>
-                            <radius>0.25</radius>
+                            <radius>0.5</radius>
                             <length>0.01</length>
                         </cylinder>
                     </geometry>
@@ -443,7 +438,7 @@
                 <visual name='visual'>
                     <geometry>
                         <cylinder>
-                            <radius>0.25</radius>
+                            <radius>0.5</radius>
                             <length>0.01</length>
                         </cylinder>
                     </geometry>
@@ -472,7 +467,7 @@
                 <visual name='visual'>
                     <geometry>
                         <cylinder>
-                            <radius>0.25</radius>
+                            <radius>0.5</radius>
                             <length>0.01</length>
                         </cylinder>
                     </geometry>
@@ -501,7 +496,7 @@
                 <visual name='visual'>
                     <geometry>
                         <cylinder>
-                            <radius>0.25</radius>
+                            <radius>0.5</radius>
                             <length>0.01</length>
                         </cylinder>
                     </geometry>

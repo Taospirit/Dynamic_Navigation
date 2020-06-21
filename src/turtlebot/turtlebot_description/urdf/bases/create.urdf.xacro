@@ -2,7 +2,7 @@
 <robot name="turtlebot_hardware" xmlns:xacro="http://ros.org/wiki/xacro">
 
 	<!-- Macro for TurtleBot body. Including Gazebo extensions, but does not include Kinect -->
-		<xacro:include filename="$(find turtlebot_description)/urdf/bases/create_gazebo.urdf.xacro"/>
+	<xacro:include filename="$(find turtlebot_description)/urdf/bases/create_gazebo.urdf.xacro"/>
 
 	<!-- <xacro:property name="base_x" value="0.33" />
 	<xacro:property name="base_y" value="0.33" /> -->

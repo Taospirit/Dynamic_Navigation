@@ -12,12 +12,13 @@
   <arg name="world" value="empty" />
   <!-- <arg name="world_file"  default="$(find turtlebot_gazebo)/worlds/empty_goal.world"/> -->
 
-  <arg name="world_file"  default="$(find actor_services)/worlds/empty_goal.world"/>
+  <arg name="world_file"  default="$(find actor_services)/worlds/two_ped_collision.world"/>
 
   <arg name="urdf_file" default="$(find xacro)/xacro --inorder '$(find turtlebot_description)/robots/$(arg base)_$(arg stacks)_$(arg 3d_sensor).urdf.xacro'" />  
   <param name="robot_description" command="$(arg urdf_file)" />
-
+  
   <rosparam command="load" file="$(find actor_services)/param/config.yaml" />
+
   
   <!-- Gazebo model spawner -->
   <node name="spawn_turtlebot_model" pkg="gazebo_ros" type="spawn_model"
@@ -40,5 +41,4 @@
   <group if="$(arg rviz)">
     <node name="rviz" pkg="rviz" type="rviz" args="-d $(find turtlebot_description)/config/$(arg base).rviz" />
   </group>
-
 </launch>
