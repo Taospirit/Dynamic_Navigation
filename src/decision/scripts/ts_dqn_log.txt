@@ -1,0 +1,18 @@
+ts_dqn_3_croosing.pth
+
+env_config:
+agent_s, agent_g =[0, 0], [6, 0]
+s, g = [[4, 3, -90], [3, -2, 90], [2, 1, -90]], [[4, -3, 0], [3, 2, 0], [2, -1, 0]]
+
+Epoch #1: 1001it [41:07,  2.46s/it, len=14.00, loss=40.520642, n/ep=1.00, n/st=10.00, rew=-64.20, v/ep=0.15, v/st=4.56]                       
+Epoch #1: test_reward: -13.969057, best_reward: -13.969057 in #1
+Epoch #2: 1001it [43:49,  2.63s/it, len=35.00, loss=41.149292, n/ep=1.00, n/st=10.00, rew=0.60, v/ep=0.15, v/st=4.55]                         
+Epoch #2: test_reward: 3.167690, best_reward: 3.167690 in #2
+Epoch #3: 1001it [1:29:09,  5.34s/it, len=0.00, loss=71.838569, n/ep=0.00, n/st=10.00, rew=0.00, v/ep=0.14, v/st=4.59]                        
+Epoch #3: test_reward: 13.373888, best_reward: 13.373888 in #3
+Epoch #4: 1001it [1:36:50,  5.80s/it, len=0.00, loss=89.069435, n/ep=0.00, n/st=10.00, rew=0.00, v/ep=0.15, v/st=4.57]                        
+Epoch #4: test_reward: 58.832944, best_reward: 58.832944 in #4
+Epoch #5: 1001it [2:16:07,  8.16s/it, len=0.00, loss=102.140338, n/ep=0.00, n/st=10.00, rew=0.00, v/ep=0.13, v/st=4.61]                       
+Epoch #5: test_reward: 5.639437, best_reward: 58.832944 in #4
+Epoch #6:   6%|#2                     | 55/1000 [08:01<2:17:51,  8.75s/it, len=29.00, n/ep=1.00, n/st=10.00, rew=106.60, v/ep=0.12, v/st=4.62]
+Finished traing! Use 25534.45s
