@@ -57,7 +57,7 @@ save_dir = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'saved_netwo
 save_path = save_dir + save_name
 
 train_type = ['train', 'eval']
-state = train_type[0]
+state = train_type[1]
 
 if state == 'train':
     goal_change_count = 0
