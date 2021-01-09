@@ -2,14 +2,20 @@
 
 <robot name="obstacle" xmlns:xacro="http://ros.org/wiki/xacro">
 	<xacro:property name="obs_width" value="0.25" />
-	<xacro:property name="obs_hight" value="1.6" />
-	<xacro:property name="obs_offset" value="0.83" />
+	<xacro:property name="obs_hight" value="1.0" />
+	<xacro:property name="obs_offset" value="0.53" />
 
   	<xacro:include filename="$(find turtlebot_description)/urdf/obstacle.gazebo" />
 	<xacro:include filename="$(find turtlebot_description)/urdf/materials.xacro" />
 
 	<link name="obstacle_link">
 		<static>1</static>
+		<inertial>
+			<mass value="0.2" />
+			<origin xyz="0 0 0.0" />
+			<inertia ixx="0.01" ixy="0.0" ixz="0.0"
+				iyy="0.01" iyz="0.0" izz="0.5" />
+		</inertial>
 		<collision name='collision'>
 			<origin xyz="0 0 0" rpy="0 0 0" />
 			<geometry>
@@ -24,14 +30,6 @@
 			</geometry>
 			<material name="black"/>
 		</visual>
-
-		<inertial>
-			<mass value="0.02" />
-			<origin xyz="0 0 0.0" />
-			<inertia ixx="0.01" ixy="0.0" ixz="0.0"
-				iyy="0.01" iyz="0.0" izz="0.5" />
-		</inertial>
-
 	</link>
 
 	<joint name="obstacle_joint" type="fixed">
@@ -43,10 +41,10 @@
 	<link name="base_link">
 		<static>1</static>
 		<inertial>
-		<mass value="2" />
-		<origin xyz="0 0 0.0" />
-		<inertia ixx="0.01" ixy="0.0" ixz="0.0"
-			iyy="0.01" iyz="0.0" izz="0.5" />
+			<mass value="2" />
+			<origin xyz="0 0 0.0" />
+			<inertia ixx="0.01" ixy="0.0" ixz="0.0"
+				iyy="0.01" iyz="0.0" izz="0.5" />
 		</inertial>
 	
 		<visual>

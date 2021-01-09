@@ -12,8 +12,9 @@
         <!-- Own physics settings to speed up simulation -->
         <physics type='ode'>
             <max_step_size>0.01</max_step_size>
-            <real_time_factor>1</real_time_factor>
-            <real_time_update_rate>100</real_time_update_rate>
+            <!-- <real_time_factor>1</real_time_factor> -->
+            <real_time_update_rate>300</real_time_update_rate>
+            <!-- <real_time_update_rate>100</real_time_update_rate> -->
             <gravity>0 0 -9.8</gravity>
         </physics>
         <model name='grey_wall0'>
@@ -201,36 +202,54 @@
             <!-- <static>1</static> -->
             <link name='link'>
                 <inertial>
-                    <mass>1</mass>
+                    <mass>10</mass>
+                     <!-- <mass value="1" /> -->
+                    <inertia ixx="0.01" ixy="0.0" ixz="0.0"
+                        iyy="0.01" iyz="0.0" izz="0.5" />
                 </inertial>
+
+                <collision name="goal">
+                    <geometry>
+                        <cylinder>
+                            <radius>0.3</radius>
+                            <length>0.2</length>
+                        </cylinder>
+                    </geometry>
+			    </collision>
+
                 <visual name='visual'>
                     <geometry>
                         <cylinder>
-                            <radius>0.5</radius>
-                            <length>0.5</length>
+                            <radius>0.3</radius>
+                            <length>0.3</length>
                         </cylinder>
+                        <!-- <cylinder length="0.1" radius="0.3"/> -->
                     </geometry>
                     <material>
                         <script>
                             <uri>file://media/materials/scripts/gazebo.material</uri>
-                            <name>Gazebo/Green</name>
+                            <name>Gazebo/Red</name>
                         </script>
                     </material>
                 </visual>
+
                 <velocity_decay>
                     <linear>0</linear>
                     <angular>0</angular>
                 </velocity_decay>
+                
                 <self_collide>0</self_collide>
                 <kinematic>0</kinematic>
-                <gravity>0</gravity>
+                <gravity>1</gravity>
             </link>
         </model>
         <model name='obs_goal0'>
             <pose>11 -10 0.005 0 0 0</pose>
             <link name='link'>
                 <inertial>
-                    <mass>1</mass>
+                    <mass value="1" />
+                    <inertia ixx="0.01" ixy="0.0" ixz="0.0"
+                        iyy="0.01" iyz="0.0" izz="0.5" />
                 </inertial>
                 <visual name='visual'>
                     <geometry>
@@ -260,6 +279,8 @@
             <link name='link'>
                 <inertial>
                     <mass>1</mass>
+                    <inertia ixx="0.01" ixy="0.0" ixz="0.0"
+                        iyy="0.01" iyz="0.0" izz="0.5" />
                 </inertial>
                 <visual name='visual'>
                     <geometry>

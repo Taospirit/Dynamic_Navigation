@@ -24,6 +24,18 @@
         <node pkg="rviz" type="rviz" name="rviz" args="-d $(find turtlebot_gazebo)/rviz/$(arg rviz_file).rviz" />
     </group>
 
+    <!-- <arg name="map_path" default="$(find rl_bringup)/maps/p3_world_30_30"/> -->
+    <!-- <include file="$(find turtlebot_gazebo)/launch/simulation.launch" /> -->
+
+    <!-- <node pkg="depthimage_to_laserscan"  type="depthimage_to_laserscan" 
+            name="depthimage_to_laserscan" output="screen">
+        <remap from="image"    to="agent0/camera/depth/image_raw" /> 
+        <remap from="camera_info" to="agent0/camera/depth/camera_info" />
+        <remap from="scan" to="/kinect_scan" />
+        <param name="range_max" type="double"value="4" />
+        <param name="output_frame_id" value="/camera_link" />
+    </node> -->
+
     <!-- <group if="$(arg stage_gui)">
         <node pkg="stage_ros" type="stageros" name="stageros" args="$(arg stage_file)">
             <param name="base_watchdog_timeout" value="0.5"/>

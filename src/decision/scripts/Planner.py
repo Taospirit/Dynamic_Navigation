@@ -142,6 +142,7 @@ class APFM(BasicInfo):
         return F_rep_x, F_rep_y
 
     def calc_rep(self, delta, dist):
+        dist += 1e-7
         return self.Krep * (1/dist - 1/self.safe_dist) * delta / dist ** 3
 
     def get_cmd(self):
@@ -175,16 +176,40 @@ class APFM(BasicInfo):
             cmd_angular = 0
         cmd_angular *= sign
         # print ('linear.x is {:.2f}, angular.z is {:.2f}'.format(cmd_linear, cmd_angular))
-
-        if self.get_dist(self.self_state, self.goal_state) < 0.8 and cmd_angular != 0:
+        dist = self.get_dist(self.self_state, self.goal_state)
+        if dist < 0.8 and cmd_angular != 0:
             cmd_linear = 0
-
+        if dist < 0.4:
+            cmd_linear = 0
+        # print(f'dist {dist}, cmd linear {cmd_linear}, cmd_angular {cmd_angular}')
         return cmd_linear, cmd_angular
 
 
 class ORCA(BasicInfo):
-    def __init__(self, self_pose, goal_pose, obs_poses):
-        super().__init__(self_pose, goal_pose, obs_poses)
+    def __init__(self):
+        super().__init__()
+        self.time_step = 1
+        self.neighbor_dist = 10
+        self.max_neighbors = 10
+        # self.time_horizon = 1 # 向前看的时间步数
+        self.time_horizon_obst = 5
+        self.radius = 0.3
+        self.max_speed = 1
+        params = self.neighbor_dist, self.max_neighbors, time_horizon, self.time_horizon_obst
+        self.orca = rvo2.PyRVOSimulator(self.time_step, *params, self.radius, self.max_speed)
+
+    def init_env(self, self_pose, goal_pose, obs_poses):
+        self.set_self_state(self_pose)
+        self.set_goal_state(goal_pose)
+        self.set_env_state(obs_poses)
+        self.self_state = self.get_self_state()
+        self.obs_states = self.get_env_states()
+        self.goal_state = self.get_goal_state()
+        self.obs_num = len(self._env_states)
+        self.obs_dict = {}
+        for i in range(self.obs_num):
+            position = (self._env_states[i].x, self._env_states[i].y)
+            self.obs_dict[i] = self.orca.addAgent(position)
 
     def _get_cmd(self):
         pass

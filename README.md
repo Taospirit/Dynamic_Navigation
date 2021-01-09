@@ -23,6 +23,9 @@ for tf2 support for python, you must use the following cmd:
 ### Test
 
 
+### Start
+1. 启用：
+
 
 ### Problem & solution
 #### 1. gazebo中行人collision属性
@@ -40,6 +43,7 @@ export GAZEBO_PLUGIN_PATH=${GAZEBO_PLUGIN_PATH}:~/Documents/actor_collisions
 gazebo actor_collisions.world
 ```
 如果出现了行人, 并且可以右键查看到collision橙色. 说明成功了.
+
 4. 应用到项目:
 - 在~/.zshrc里面 `export GAZEBO_PLUGIN_PATH=${GAZEBO_PLUGIN_PATH}:.../actor_collisions`
 - 在含行人的`.world`文件中, 需要在`<actor>`标签下添加`<plugin>`内容来实现`collision`的效果, 具体内容查看 `actor_collisions.world` 文件内容.

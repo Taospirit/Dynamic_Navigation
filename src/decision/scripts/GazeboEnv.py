@@ -3,7 +3,8 @@
 import rospy
 import math
 import sys
-import time
+import os
+import time, random
 import numpy as np
 import threading
 # import pprint
@@ -27,7 +28,7 @@ elif ROS_PATH in sys.path:
     import cv2
     from cv_bridge import CvBridge, CvBridgeError
     sys.path.append(ROS_PATH)
-
+import copy
 
 class GazeboEnv():
     def __init__(self):
@@ -54,39 +55,75 @@ class GazeboEnv():
         self.start_default_list = [[-16, y, 0] for y in range(-10, 11, 2) if y != 0]
         self.goal_default_list = [[16, y, 0] for y in range(-10, 11, 2) if y != 0]
         self.agent_start_default = [0, 0]
-        self.agent_goal_default = [5, 0]
+        self.agent_goal_default = [7, 7]
 
         self.bridge = CvBridge()
         self.odom, self.rgb_image_raw, self.laser_scan_raw = None, None, None
         self.image_data_set, self.laser_data_set = [], []
         self.info = 0
         self.done = False
-        self.collapsed = False
-        speed_x, speed_z = 1.5, 1.5
+        self.agent_obs_collapsed = False
         self.observation_space = np.array([])
-        self.action_space = np.array([[speed_x, speed_z], [speed_x, speed_z/2], [speed_x, 0.0],
-                        [speed_x, -speed_z/2], [speed_x, -speed_z], [speed_x/2, speed_z],
-                        [speed_x/2, 0.0], [speed_x/2, -speed_z], [0.0, -speed_z],
-                        [0.0, 0.0], [0.0, speed_z/2]])
+        # self.action_space = np.array([[v_max, w_max], [v_max, w_max/2], [v_max, 0.0],
+        #                 [v_max, -w_max/2], [v_max, -w_max], [v_max/2, w_max],
+        #                 [v_max/2, 0.0], [v_max/2, -w_max], [0.0, -w_max],
+        #                 [0.0, 0.0], [0.0, w_max/2]])
         # self.n_actions = len(self.action_space)
+
+        self.action_space = np.array([0, 0])
+
+        v_range, w_range = 2.0, 2.0
+        self.action_dim = 2
+
+        self.action_v_range = np.array([0, v_range]) # for get v=0  
+        self.action_w_range = np.array([-w_range/2, w_range/2])
+        self.action_v_scale = (self.action_v_range[1] - self.action_v_range[0]) / 2
+        self.action_v_bias = (self.action_v_range[1] + self.action_v_range[0]) / 2
+        self.action_w_scale = (self.action_w_range[1] - self.action_w_range[0]) / 2
+        self.action_w_bias = (self.action_w_range[1] + self.action_w_range[0]) / 2
+        self.action_scale = np.array([self.action_v_scale, self.action_w_scale])
+        self.action_bias = np.array([self.action_v_bias, self.action_w_bias])
+
         self.goal_dist_last, self.goal_dist = 0, 0
+        gazebo_realtime_factor = 3
+        self.step_interval_time = 0.3 # step_interval_time = step_realtime_interval * gazebo_realtime_factor
+        self.step_realtime_interval = self.step_interval_time / gazebo_realtime_factor
         self.step_count = 0
-        self.step_count_limit = 50 # max_step_count
+        # self.step_count_limit = 100 # max_step_count
+        self.step_count_limit = int(14.0 / (v_range * 0.5) / self.step_realtime_interval * 2)
+        self.cmd_vel_change_rate = -0.5
+        self.goal_dist_reward_rate = 10
+        self.goal_theta_reward_min = 15 # less than min degress is acceptable
+        self.goal_theta_reward_rate = -0.05
+        self.reward_near_goal = 100
+        self.reward_near_obs = -50
+        self.reward_move_penalty = -1
 
         self.euclidean_distance = lambda p1, p2: np.hypot(p1['x'] - p2['x'], p1['y'] - p2['y'])
         
-        self.laser_sacn_clip = rospy.get_param("/dist/laser_sacn_clip")
-        self.dist_near_goal = rospy.get_param("/dist/near_goal")
-        self.dist_near_obs = rospy.get_param("/dist/near_obs")
-        self.dist_scan_set = rospy.get_param("/dist/min_scan")
+        # self.laser_sacn_clip = rospy.get_param("/dist/laser_sacn_clip")
+        # self.dist_agent2goal = rospy.get_param("/dist/near_goal")
+        # self.dist_obs2goal = rospy.get_param("/dist/near_obs")
+        # self.dist_scan_set = rospy.get_param("/dist/min_scan")
 
-        self.laser_size = rospy.get_param("/params/laser_size")
-        self.img_size = rospy.get_param("/params/img_size")
-        self.num_sikp_frame = rospy.get_param("/params/num_sikp_frame")
-        self.num_stack_frame = rospy.get_param("/params/num_stack_frame")
-        self.reward_near_goal = rospy.get_param("/params/reward_near_goal")
-        self.reward_near_obs = rospy.get_param("/params/reward_near_obs")
+        # self.laser_size = rospy.get_param("/params/laser_size")
+        # self.img_size = rospy.get_param("/params/img_size")
+        # self.num_sikp_frame = rospy.get_param("/params/num_sikp_frame")
+        # self.num_stack_frame = rospy.get_param("/params/num_stack_frame")
+        # self.reward_near_goal = rospy.get_param("/params/reward_near_goal")
+        # self.reward_near_obs = rospy.get_param("/params/reward_near_obs")
 
+        self.laser_sacn_clip = 5.0
+        self.dist_agent2goal = 0.3
+        self.dist_obs2goal = 0.4
+        self.dist_scan_set = 0.3
+
+        self.laser_size = 360
+        self.img_size = 80
+        self.num_sikp_frame = 2
+        self.num_stack_frame = 4
+        self.n = 0
+      
         # get topic name from param server
         odom_ = rospy.get_param('/topics/odom')
         laser_ = rospy.get_param('/topics/laser_scan')
@@ -94,16 +131,15 @@ class GazeboEnv():
         gazebo_states_ = rospy.get_param('/topics/gazebo_states')
         rgb_image_ = rospy.get_param('/topics/rgb_image')
         gazebo_set_ = rospy.get_param('/topics/gazebo_set')
-        dumper_ = '/agent0/base_bumper'
+        bumper_ = '/agent0/base_bumper'
         self._check_all_sensors_ready(odom_, laser_, rgb_image_, gazebo_states_)
         rospy.Subscriber(odom_, Odometry, self._odom_callback)
         rospy.Subscriber(laser_, LaserScan, self._laser_callback)
         rospy.Subscriber(rgb_image_, Image, self._image_callback)
         rospy.Subscriber(gazebo_states_, ModelStates, self._gazebo_states_callback, queue_size=1)
-        rospy.Subscriber(dumper_, ContactsState, self._dumper_callback, queue_size=1)
+        rospy.Subscriber(bumper_, ContactsState, self._bmper_callback, queue_size=1)
         self.pub_agent = rospy.Publisher(agent_cmd_, Twist, queue_size=1)
         self.pub_gazebo = rospy.Publisher(gazebo_set_, ModelState, queue_size=1)
-
         self.cmd_vel = Twist()
         self.cmd_vel_last = {'v':0, 'w':0}
         self.agent_state_ = ModelState()
@@ -112,12 +148,12 @@ class GazeboEnv():
         # parameter to be fixed
         self.planner.set_katt(2.0)
         self.planner.set_krep(5)
-        self.planner.set_linear_max(0.8)
-        self.planner.set_linear_min(0.2)
+        self.planner.set_linear_max(0.3)
+        self.planner.set_linear_min(0.1)
         self.planner.set_angluar_max(2.0)
         self.planner.set_angluar_min(0.2)
         self.planner.set_safe_dist(2.0)
-        self.planner.set_arrived_dist(self.dist_near_goal)
+        self.planner.set_arrived_dist(self.dist_agent2goal)
         self.planner_agent_influence = False # not consider agent when obs planning 
 
     #region check_topic
@@ -187,7 +223,18 @@ class GazeboEnv():
         if len(self.laser_data_set) > self.num_sikp_frame * self.num_stack_frame: del self.laser_data_set[0] 
 
     def _image_callback(self, data):
-        self.rgb_image_raw = self.bridge.imgmsg_to_cv2(data)
+        self.rgb_image_raw = self.bridge.imgmsg_to_cv2(data) # (480, 640, 3)
+
+        # img = copy.deepcopy(self.rgb_image_raw)
+        # if self.n % 20 == 0 and self.n < 5000 and self.n > 2000:
+        #     cv2.putText(img, f'V_cmd:{self.agent_pose['v']:.3f}', (20, 400), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 2)
+        #     cv2.putText(img, f'W_cmd:{self.agent_pose['w']:.3f}', (20, 450), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 2)
+        #     # cv2.rectangle(img, )
+        #     save_fig = '/home/lintao/projects/Dynamic_Navigation/src/decision/scripts/fig_save3/' + str(self.n) + '.jpg'
+        #     cv2.imwrite(save_fig, img)
+        # self.n += 1
+        
+        # print(f'rgb_image_raw shape is {self.rgb_image_raw.shape}')
         img_data = cv2.resize(self.rgb_image_raw, (self.img_size, self.img_size)) # 80x80x3
         img_data = cv2.cvtColor(img_data, cv2.COLOR_RGB2GRAY)
         img_data = np.reshape(img_data, (self.img_size, self.img_size))
@@ -205,7 +252,7 @@ class GazeboEnv():
             vy = data.twist[i].linear.y
             v = np.hypot(vx, vy)
             w = data.twist[i].angular.z
-            t = np.degrees(self.euler_from_quaternion(data.pose[i])[2]) # normalized, 机器人朝向与x轴方向的夹角, 单位为度
+            t  = np.degrees(self.euler_from_quaternion(data.pose[i])[2]) # normalized, 机器人朝向与x轴方向的夹角, 单位为度
             name = str(data.name[i])
 
             #======test obs info correct,
@@ -235,7 +282,7 @@ class GazeboEnv():
                 self.agent_goal['y'] = y
             
         self.goal_dist = self.euclidean_distance(self.agent_pose, self.agent_goal)
-
+        # print (f'goal_dist {self.goal_dist}')
         # print ('state_x is {}'.format(self.gazebo_obs_states[-1]['x']))
 
         # info test
@@ -245,14 +292,32 @@ class GazeboEnv():
         # print(self.agent_goal)
         # print(self.agent_pose)
 
-    def _dumper_callback(self, data):
+    def _bmper_callback(self, data):
         # self_collision_name = 'agent::base_footprint::base_footprint_fixed_joint_lump__base_link_collision_1'
+        # goal_collision_name = 'agent_goal0::link::goal'
+        # obs_collisioin_name = 'obs3::base_link::base_link_fixed_joint_lump__collision_collision_2'
         contacts = data.states
-        self.collapsed = False
+        self.agent_obs_collapsed = False
+        self.agent_goal_collapsed = False
+
+        if abs(self.agent_pose['x']) > 10 or abs(self.agent_pose['y']) > 10:
+            self.agent_obs_collapsed = True
+        # if contacts:
+        #     for info in contacts:
+        #         print ('-------')
+        #         print (f'collision1_name {info.collision1_name}')
+        #         print (f'collision2_name {info.collision2_name}')
         for info in contacts:
             if 'agent' in info.collision1_name or 'agent' in info.collision2_name:
-                self.collapsed = True
-                break
+                if 'obs' in info.collision1_name or 'obs' in info.collision2_name:
+                    self.agent_obs_collapsed = True
+                    break
+
+        for info in contacts:
+            if 'agent' in info.collision1_name or 'agent' in info.collision2_name:
+                if 'goal' in info.collision1_name or 'goal' in info.collision2_name:
+                    self.agent_goal_collapsed = True
+                    break
 
     def gazebo_pub(self, state): # pub gazebo ped state for env pde state reset
         self.pub_gazebo.publish(state)
@@ -265,7 +330,7 @@ class GazeboEnv():
     def euler_from_quaternion(self, pose):
         x = pose.orientation.x 
         y = pose.orientation.y 
-        z = pose.orientation.z 
+        z = pose.orientation.z  
         w = pose.orientation.w 
         Roll = np.arctan2(2 * (w * x + y * z), 1 - 2 * (x**2+y**2))
         Pitch = np.arcsin(2 * (w * y - z * x))
@@ -286,6 +351,12 @@ class GazeboEnv():
     def normalize_theta(self, theta):
         return math.degrees(math.atan2(math.sin(math.radians(theta)), math.cos(math.radians(theta))))
 
+    def _get_agent2goal_theta(self):
+        point2goal_theta = math.degrees(math.atan2(self.agent_goal['y'] - self.agent_pose['y'],\
+                 self.agent_goal['x'] - self.agent_pose['x']))
+        agent2goal_theta = self.normalize_theta(self.agent_pose['t'] - point2goal_theta) # 左正右负
+        # print (agent2goal_theta)
+        return agent2goal_theta
     #endregion math function
 
     #region: env setting and function related
@@ -306,6 +377,7 @@ class GazeboEnv():
         self.set_obs_init_pose(obs_start_list)
         self.set_obs_goal_pose(obs_goal_list)
         self.set_agent_goal_pose(goal_point)
+        self.reset()
 
     def init_env_random(self, num=10):
         'init new env: init random obs for given number, default value is 10'
@@ -317,20 +389,37 @@ class GazeboEnv():
         self.set_agent_goal_pose()
 
     def reset_env(self):
+        self.step_count = 0
         'reset env to begin state for start_list & goal_list taken'
         assert self.obs_start_list is not None and self.obs_goal_list is not None
         # self.init_env(self.start_pose[:-1], self.goal_pose[:-1], self.obs_start_list, self.obs_goal_list)
-        self.set_agent_start_pose(self.start_pose)
+        # self.set_agent_start_pose(agent_theta, self.start_pose)
+        self.set_agent_goal_pose(self.goal_pose)
         self.set_obs_init_pose(self.obs_start_list)
         self.set_obs_goal_pose(self.obs_goal_list)
+    #endregion
 
-    def set_agent_start_pose(self, start_point=None):
-        if start_point is None:
+    #region: set env 
+    def set_agent_start_pose(self, start_pose=None):
+        if start_pose is None:
             start_point = np.random.uniform(-8, 8, 2)
-        self.start_pose = list(np.append(start_point, 0)) # set theta to np.pi
+            theta = np.random.uniform(-180, 180)
+            self.start_pose = list(np.append(start_point, theta)) # set theta to np.pi
+        else:
+            # print(start_pose)
+            assert 2 <= len(start_pose) <= 3
+            self.start_pose = start_pose
+            # if len(start_pose) == 3:
+            if len(start_pose) == 2:
+                random_theta = np.random.uniform(-180, 180)
+                # self.start_pose = start_pose
+                self.start_pose.append(random_theta)
 
+        assert len(self.start_pose) == 3
         if self.verbose:
             print ("=====set agent start pose!=====")
+        # print(f'agent start pose {self.start_pose}')
+        # print([self.start_pose])
         self._pub_gazebo_states(self.agent_name, [self.start_pose])
 
     def set_obs_init_pose(self, obs_start_list=None, num=10):
@@ -439,13 +528,17 @@ class GazeboEnv():
                 print ('=====model name is {}====='.format(gazebo_state_name + str(i)))
                 print ('x is {:.2f}, y is {:.2f}'.format(pose_list[i][0], pose_list[i][1]))
                 print ('theta is {:.2f}'.format(theta_list[i]))
+            if gazebo_state_name == 'agent':
+                self.cmd_vel.linear.x = 0
+                self.cmd_vel.angular.z = 0
+                self.agent_pub(self.cmd_vel)
             model_state.twist.linear.x = 0
             model_state.twist.linear.y = 0       
             model_state.twist.angular.z = 0
             self.gazebo_pub(model_state)
 
             time.sleep(0.02)
-
+    #endregion
 
     #region get_env_info
     def _get_state(self):# sensor data collection
@@ -469,13 +562,16 @@ class GazeboEnv():
             r = 0.5
             obs_num = len([obs for obs in self.obs_start_list if -10 < obs[0] < 10])
 
-            point2goal_theta = math.degrees(math.atan2(self.agent_goal['y'] - self.agent_pose['y'],\
-                 self.agent_goal['x'] - self.agent_pose['x']))
-            agent2goal_theta = self.normalize_theta(self.agent_pose['t'] - point2goal_theta) # 左正右负
-            agent_vx = self.agent_pose['v'] * math.cos(math.radians(self.agent_pose['t']))
-            agent_vy = self.agent_pose['v'] * math.sin(math.radians(self.agent_pose['t']))
-
-            self_state_stack = [self.goal_dist, agent2goal_theta, agent_vx, agent_vy, r]
+            # point2goal_theta = math.degrees(math.atan2(self.agent_goal['y'] - self.agent_pose['y'],\
+            #      self.agent_goal['x'] - self.agent_pose['x']))
+            # agent2goal_theta = self.normalize_theta(self.agent_pose['t'] - point2goal_theta) # 左正右负
+            agent2goal_theta = self._get_agent2goal_theta()
+            # agent_vx = self.agent_pose['v'] * math.cos(math.radians(self.agent_pose['t']))
+            # agent_vy = self.agent_pose['v'] * math.sin(math.radians(self.agent_pose['t']))
+            agent_v = self.agent_pose['v']
+            agent_w = self.agent_pose['w']                       
+             # self_state_stack = [self.goal_dist, agent2goal_theta, agent_vx, agent_vy, r]
+            self_state_stack = [self.goal_dist, agent2goal_theta, agent_v, agent_w, r]
             # s = [d_g, theta, v_ax, v_ay, r_a]
 
             obs_state_stack = []
@@ -485,9 +581,11 @@ class GazeboEnv():
                 agent2obs_dist = math.hypot(delta_x, delta_y)
                 agent2obs_theta = math.degrees(math.atan2(delta_y, delta_x))
                 agent2obs_theta = self.normalize_theta(self.agent_pose['t'] - agent2obs_theta) # 左正右负
-                obs_vx = self.gazebo_obs_states[i]['v'] * math.cos(math.radians(self.gazebo_obs_states[i]['t']))
-                obs_vy = self.gazebo_obs_states[i]['v'] * math.sin(math.radians(self.gazebo_obs_states[i]['t']))
-                obs_state = [agent2obs_dist, agent2obs_theta, obs_vx, obs_vy, r]
+                # obs_vx = self.gazebo_obs_states[i]['v'] * math.cos(math.radians(self.gazebo_obs_states[i]['t']))
+                # obs_vy = self.gazebo_obs_states[i]['v'] * math.sin(math.radians(self.gazebo_obs_states[i]['t']))
+                obs_v = self.gazebo_obs_states[i]['v']
+                obs_w = self.gazebo_obs_states[i]['w']
+                obs_state = [agent2obs_dist, agent2obs_theta, obs_v, obs_w, r]
                 # s_obs = [d_a, a_theta, v_x, v_y, r]
                 obs_state_stack += obs_state
                 # s_prime = [p_x, p_y, v_x, v_y, r_prime, d_a, r_peimr + r_a]
@@ -497,7 +595,7 @@ class GazeboEnv():
         return self.observation_space
 
     def _get_reward(self):
-        reward = 0
+        reward = self.reward_move_penalty
         reward += self.reward_cmd_vel_change()
         reward += self.reward_close_to_goal()
 
@@ -514,13 +612,13 @@ class GazeboEnv():
         self._set_info(0)
 
         if self.check_agent_collision():
-            # print ('-----!!!robot collapsed!!!-----')
+            # print ('-----!!!robot agent_obs_collapsed!!!-----')
             self._set_info(1)
-        if self.check_agent_at_goal(self.dist_near_goal):
+        if self.check_agent_at_goal(self.dist_agent2goal):
             # print ('-----!!!agent get goal at {:.2f}!!!-----'.format(self.goal_dist))
             self._set_info(2)
-        # self.check_agent_obs(self.dist_near_obs, self.dist_scan_set, 100)
-        if self.check_obs_at_goal(self.dist_near_obs):
+        # self.check_agent_obs(self.dist_obs2goal, self.dist_scan_set, 100)
+        if self.check_obs_at_goal(self.dist_obs2goal):
             # print ('-----!!!obs at goal!!!-----')
             self._set_info(3)
 
@@ -531,25 +629,39 @@ class GazeboEnv():
             self._set_info(4)
 
         # print ('----info is {}'.format(self.info))
-        return { }
+        return self.info
 
-    def reward_cmd_vel_change(self, rate=-0.1):
+    def reward_cmd_vel_change(self):
         # print (type(self.cmd_vel_last['v']), type(self.cmd_vel.linear.x))
         cmd_vel_reward = abs(self.cmd_vel_last['v'] - self.cmd_vel.linear.x) + abs(self.cmd_vel_last['w'] - self.cmd_vel.angular.z)
         # print ('cmd_vel_change: {:.3f} / '.format(cmd_vel_reward))
-        return rate * cmd_vel_reward
+        return self.cmd_vel_change_rate * cmd_vel_reward
 
-    def reward_close_to_goal(self, rate=5):
+    def reward_close_to_goal(self):
         delta_dist = self.goal_dist_last - self.goal_dist if self.goal_dist_last != 0 else 0
         # print ('goal_dist: {:.3f}, goal_dist_last: {:.3f}'.format(self.goal_dist, self.goal_dist_last))
         # print ('delta_dist: {:.3f}'.format(delta_dist))
-        return rate * delta_dist
+        # absolute_theta = abs(self._get_agent2goal_theta()) # degree
+        # print (f'absolute_theta {absolute_theta}')
+        absolute_theta_error = max(0, abs(self._get_agent2goal_theta()) - self.goal_theta_reward_min)
+        # print (f'minus {absolute_theta}')
+        #####
+
+        if self.goal_dist < 1:
+            delta_dist *= 5
+
+        #####
+        goal_reward = self.goal_dist_reward_rate * delta_dist + self.goal_theta_reward_rate * absolute_theta_error
+        return goal_reward
 
     def check_agent_at_goal(self, dist_min):
-        return self.goal_dist < dist_min
+        # return self.goal_dist < dist_min
+        # return self.agent_goal_collapsed
+        a = abs(self.goal_dist) < dist_min
+        return self.agent_goal_collapsed
 
     def check_agent_collision(self):
-        return self.collapsed
+        return self.agent_obs_collapsed
 
     def check_obs_at_goal(self, arrived_dist):
         obs_num = len([obs for obs in self.obs_start_list if -10 < obs[0] < 10])
@@ -569,31 +681,6 @@ class GazeboEnv():
     def _set_info(self, num):
         self.info = num
 
-    # def wait_until_twist_achieved(self, cmd_vel_value, epsilon=0.15):
-    #     linear_speed = cmd_vel_value.linear.x
-    #     angular_speed = cmd_vel_value.angular.z
-
-    #     linear_speed_plus = linear_speed + epsilon
-    #     linear_speed_minus = linear_speed - epsilon
-    #     angular_speed_plus = angular_speed + epsilon
-    #     angular_speed_minus = angular_speed - epsilon
-
-    #     while not rospy.is_shutdown():
-
-    #         # current_odometry = self._check_odom_ready()
-    #         current_odometry = self.get_odom()
-    #         odom_linear_vel = current_odometry.twist.twist.linear.x
-    #         odom_angular_vel = current_odometry.twist.twist.angular.z
-    #         # rospy.loginfo()
-    #         print ('Current is {:.2f}/{:.2f}, goal is {:.2f}/{:.2f}'.format(odom_linear_vel, odom_angular_vel, linear_speed, angular_speed))
-    #         linear_vel_are_close = (odom_linear_vel <= linear_speed_plus) and (odom_linear_vel > linear_speed_minus)
-    #         angular_vel_are_close = (odom_angular_vel <= angular_speed_plus) and (odom_angular_vel > angular_speed_minus)
-
-    #         if linear_vel_are_close and angular_vel_are_close:
-    #             print ('Achieved speed {:.2f}/{:.2f}, goal is {:.2f}/{:.2f}'.format(odom_linear_vel, odom_angular_vel, linear_speed, angular_speed))
-    #             # rospy.loginfo('Have achieve twist speed')
-    #             break
-
     def get_odom(self):
         return self.odom
 
@@ -601,22 +688,43 @@ class GazeboEnv():
         self.verbose = vel
     #endregion
 
-    def reset(self): # init state and env
+    def reset(self, rand_theta=False): # init state and env
         if self.verbose:
             print ('=============env_reset==============')
-        start_point = np.append(self.agent_start_default, 0)
-        self._pub_gazebo_states(self.agent_name, [start_point])
+        # random_init_theta = random.choice(t)
+        # random_init_theta = 90
+        # print (f'reset env for init_theta {init_theta}')
+        # start_point = np.append(self.agent_start_default, random_init_theta)
+        # self._pub_gazebo_states(self.agent_name, [start_point])
+        agent_init_pose = self.start_pose[:2]
+        agent_init_theta = np.random.uniform(-180, 180) if rand_theta else 0
+        # agent_init_theta = 0 
+        agent_init_pose.append(agent_init_theta)
+        self.set_agent_start_pose(agent_init_pose)
         self.reset_env()
+        # print(f'reset_evn')
+        
+        # time.sleep(10)
+        # print(f'after sleeping')
         # init state
+
         return self._get_state()
         # TODO-dynamic obs
 
-    def step(self, action_index, tele_input=None):
+    def step(self, action, tele_input=None):
+        self.cmd_vel.linear.x = tele_input[0] if tele_input else action[0]
+        self.cmd_vel.angular.z = tele_input[1] if tele_input else action[1]
+        # print (f'get cmd is {action[0]}, {action[1]}')
+        # self.cmd_vel.linear.x = tele_input[0] if tele_input else self.action_space[action][0]
+        # self.cmd_vel.angular.z = tele_input[-1] if tele_input else self.action_space[action][1]       
+        return self.step_pub()
+
+    def step_pub(self):
         # rate = rospy.Rate(1)
-        self.cmd_vel.linear.x = tele_input[0] if tele_input else self.action_space[action_index][0]
-        self.cmd_vel.angular.z = tele_input[-1] if tele_input else self.action_space[action_index][1]
+        # self.cmd_vel.linear.x = tele_input[0] if tele_input else self.action_space[action_index][0]
+        # self.cmd_vel.angular.z = tele_input[-1] if tele_input else self.action_space[action_index][1]
         if self.verbose:
-            print ('set linear vel {}, angular vel {}, index {}'.format(self.cmd_vel.linear.x, self.cmd_vel.angular.z, action_index))
+            print ('set linear vel {}, angular vel {}'.format(self.cmd_vel.linear.x, self.cmd_vel.angular.z))
         self.agent_pub(self.cmd_vel)
         # self.wait_until_twist_achieved(self.cmd_vel)
         self.obs_planner_pub()
@@ -625,14 +733,15 @@ class GazeboEnv():
         start = time.time()
         end = time.time()
         
-        step_interval = 0.5 # openai_ros 0.2
+        # step_realtime_interval = 0.5 # openai_ros 0.2
         # time.sleep(during)
         
         begin = time.time()
-        while time.time() - begin < step_interval: # trade_off 
+        while time.time() - begin < self.step_realtime_interval: # trade_off 
             info = self._get_info() # set diff info
             done = self._get_done() # judge done or not
             if done:
+                self.step_count = 0
                 break
 
         reward = self._get_reward()
@@ -642,6 +751,7 @@ class GazeboEnv():
         self.cmd_vel_last['w'] = self.cmd_vel.angular.z
         self.goal_dist_last = self.goal_dist
         self.step_count += 1
+        # print(f'step count {self.step_count}', end='\r')
 
         return state_, reward, done, info
     
@@ -662,6 +772,16 @@ class GazeboEnv():
             topic = '/' + self.obs_name + str(i) + '/cmd_vel'
             pub = rospy.Publisher(topic, Twist, queue_size=1)
             pub.publish(cmd_vel)
+
+    def sample_action(self):
+        sample = np.random.random_sample([self.action_space.shape[0]])
+        cmd = 2 * sample - 1 # map to (-1, 1)
+        return cmd
+
+    def random_goal(self):
+        print ('reset agent goal!')
+        self.agent_goal_default = np.random.uniform(-8, 8, 2)
+        self.goal_pose = np.random.uniform(-8, 8, 2)
 
 
 def get_key():
@@ -686,10 +806,11 @@ def get_totoal_reward(r_l, gamma):
         return r_l.pop(0) + gamma * get_totoal_reward(r_l, gamma)
 
 if __name__ == "__main__":
+    pass
     env = GazeboEnv()
     env.set_verbose(False)
     print ('---before while---')
-    # env.init_default_env()
+    env.init_default_env()
     print ('=====befor reset=====')
     # env.reset()
     agent_start = [0, 0]
@@ -821,7 +942,12 @@ if __name__ == "__main__":
     #     s_, r, d, i = env.step(choose_action)
 
     #======test reward=======#
-        # key = get_key()
+    while not rospy.is_shutdown():
+        key = get_key()
+        if key == 'r':
+            env.reset()
+        else:
+            pass
         # speed = 0.2
         # move = {'w': [speed, 0],
         #         'a': [0, speed],
@@ -882,5 +1008,6 @@ if __name__ == "__main__":
         # env.pub_gazebo()
         # rospy.loginfo('linear.x is {:.2f}, linear.y is {:.2f}'.format(v_x, v_y))
         # time.sleep(0.5)
+
     print ('stop~')
     rospy.spin()

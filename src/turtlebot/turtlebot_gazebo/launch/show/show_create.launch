@@ -3,7 +3,7 @@
   <arg name="stacks"    value="circles"/>  <!-- hexagons, circles -->
   <arg name="3d_sensor" value="asus_xtion_pro"/>  <!-- kinect, asus_xtion_pro, realsense -->
 
-  <arg name="rviz" value="false"/>
+  <arg name="rviz" value="true"/>
   <arg name="gazebo" value="true"/>
   <!-- <arg name="stage_gui" default="false" /> -->
   <!-- <arg name="stage_file" default="$(find turtlebot_gazebo)/maps/stage/wall.world"/> -->
